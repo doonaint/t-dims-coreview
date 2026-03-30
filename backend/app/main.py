@@ -158,7 +158,11 @@ def get_ringmap_projects():
 @app.post("/api/ringmap/projects/{project_key}/upload")
 async def upload_ringmap_project(project_key: str, rows_json: str = Form(...), file_name: str = Form(default=""), completed_ring: str = Form(default="")):
     with db() as conn:
-        p = project(conn, project_key); segs = project_segments(conn, p["id"]); need(bool(segs), "No segments configured for project", 400); fallback_id = segs[0]["id"]; seg_map = {norm_segment(s["segment_number"]): s["id"] for s in segs}; rows = json.loads(rows_json or "[]"); need(isinstance(rows, list), "rows_json must be a JSON array")
+        p = project(conn, project_key); segs = project_segments(conn, p["id"]); need(bool(segs), "No segments configured for project", 400); fallback_id = segs[0]["id"]; seg_map = {norm_segment(s["segment_number"]): s["id"] for s in segs}
+        try: parsed = json.loads(rows_json or "[]")
+        except json.JSONDecodeError as exc: raise HTTPException(status_code=400, detail=f"rows_json is not valid JSON: {exc.msg}") from exc
+        rows = parsed.get("rows") if isinstance(parsed, dict) and isinstance(parsed.get("rows"), list) else parsed
+        need(isinstance(rows, list), "rows_json must be a JSON array or an object with a rows array")
         conn.execute("DELETE FROM ring_coordinates WHERE segment_id IN (SELECT id FROM segments WHERE project_id=%s)", (p["id"],))
         seq = {s["id"]: 0 for s in segs}; t = now_iso(); inserted = 0
         for row in rows:

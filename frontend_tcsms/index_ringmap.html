@@ -387,10 +387,15 @@
   async function persistProjectUpload(projectName, file) {
     const project = PROJECT_BY_NAME[projectName];
     if (!project) return;
+    const rows = Array.isArray(state.projects[projectName].rows) ? state.projects[projectName].rows : [];
+    console.log('[ringmap-upload]', project.key, 'parsed rows:', rows.length, rows.slice(0, 5));
+    if (!rows.length) {
+      throw new Error('No valid coordinate rows were parsed from the uploaded file.');
+    }
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('rows_json', JSON.stringify(state.projects[projectName].rows || []));
+    formData.append('rows_json', JSON.stringify(rows));
     formData.append('file_name', state.projects[projectName].fileName || file.name || `${project.key}.xlsx`);
     formData.append('completed_ring', state.projects[projectName].completedRing || '');
 
@@ -398,7 +403,11 @@
       method: 'POST',
       body: formData
     });
-    if (!response.ok) throw new Error(`Upload save failed (${response.status})`);
+    if (!response.ok) {
+      const detail = await response.text();
+      console.error('[ringmap-upload] server error', response.status, detail);
+      throw new Error(`Upload save failed (${response.status}): ${detail}`);
+    }
   }
 
   async function persistProjectUpdate(projectName) {
