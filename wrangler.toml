@@ -1,0 +1,12 @@
+name = "t-dims-coreview"
+compatibility_date = "2026-03-27"
+pages_build_output_dir = "./frontend_tcsms"
+
+[[kv_namespaces]]
+binding = "TCSMS_STORAGE"
+id = "REPLACE_WITH_PRODUCTION_KV_NAMESPACE_ID"
+
+[[r2_buckets]]
+binding = "TCSMS_UPLOADS"
+bucket_name = "replace-with-ring-upload-bucket"
+

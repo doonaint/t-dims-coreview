@@ -1,0 +1,67 @@
+html, body {
+  min-height: 100%;
+}
+
+@media (min-width: 1600px) and (min-height: 900px) {
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    min-height: 100vh !important;
+  }
+
+  header,
+  footer {
+    flex: 0 0 auto;
+  }
+
+  main {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  main > .grid,
+  main > div.grid,
+  main > .full-height-grid {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    align-content: stretch;
+  }
+
+  main > .grid > *,
+  main > div.grid > *,
+  .full-height-grid > * {
+    min-height: 0 !important;
+  }
+
+  .flex-grow,
+  .flex-1,
+  .overflow-y-auto,
+  .overflow-x-auto,
+  .custom-scrollbar,
+  .right-col-fill,
+  .right-cards,
+  .pdf-stage,
+  .pdf-stage-inner,
+  .pdf-page-wrap,
+  .map-container {
+    min-height: 0 !important;
+  }
+
+  #map,
+  #detailMapHanam,
+  #detailMapYangpyeong,
+  #embeddedRingMap,
+  #fullRingMap {
+    min-height: 0 !important;
+  }
+
+  .min-h-screen {
+    min-height: 100vh !important;
+  }
+}

@@ -1,0 +1,32 @@
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: tcsms
+      POSTGRES_USER: tcsms
+      POSTGRES_PASSWORD: tcsms
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://tcsms:tcsms@postgres:5432/tcsms
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/data:/app/data
+    depends_on:
+      - postgres
+  frontend:
+    build: ./frontend_tcsms
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

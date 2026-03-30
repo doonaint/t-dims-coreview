@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>하남 구간 상세 현황 - 전력공급시설</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link crossorigin="" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet"/>
+<link href="./fhd-layout.css" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#D94A3A",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#0a1118",
+                        "panel-dark": "#16222e",
+                        "border-dark": "#233648",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "Pretendard", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                font-family: "Public Sans", "Pretendard", sans-serif;
+            }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1a2632
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #324d67;
+            border-radius: 10px
+        }
+        .map-overlay-blur {
+            backdrop-filter: blur(8px);
+            background-color: rgba(16, 25, 34, 0.7)
+        }
+        .google-map-bg {
+            background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuAoZ_3iJg8f7IzBJYEUrLkyGmKeZCjgzzbXeUKrv8cTNpss8Sdgl6pYVIr447BcvnFnclHEt8Ngxakk5sSuTgm5OEUlpW9XI4OiKoNyw_1rZAkRYNn2TmuIGJSPqj-tW_z_FGQKMXXm-52IKzMvWFrM00aebqFJ46kKj4mNCgYsNUKMHD2vpdY-v63j39NQCIZ-gXX56crp5oQ5VDROP8RBoL-ttV7NgBaVp5STdRJYWBt_iObqqfrJu499EsVdk6QNVik1V7Y02Yhm);
+            background-size: cover;
+            background-position: center
+        }
+    </style>
+
+<style>
+  :root{--section-primary:#D94A3A;--section-primary-soft:rgba(217,74,58,0.14);--section-primary-glow:rgba(217,74,58,0.45);--section-primary-light:#E55A4A;}
+  .section-accent{color:var(--section-primary)!important;}
+  .section-accent-bg{background-color:var(--section-primary)!important;}
+  .section-accent-soft{background-color:var(--section-primary-soft)!important;color:var(--section-primary)!important;}
+</style>
+
+<style>
+  #openPdfFullscreen{
+    position:fixed; top:82px; right:24px; z-index:1900;
+    display:flex; align-items:center; gap:8px;
+    padding:12px 16px; border-radius:14px; border:1px solid rgba(255,255,255,.14);
+    background:rgba(15,23,42,.92); color:#fff; font-weight:800; font-size:14px;
+    box-shadow:0 10px 28px rgba(0,0,0,.28); cursor:pointer;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  #openPdfFullscreen:hover{ background:rgba(30,41,59,.98); }
+  .pdf-overlay{position:fixed;inset:0;z-index:2000;background:rgba(3,7,18,.96);display:none;align-items:center;justify-content:center;padding:0;}
+  .pdf-overlay.is-open{display:flex;}
+  .pdf-overlay-inner{position:relative;width:100vw;height:100vh;max-width:none;max-height:none;}
+  .pdf-shell{height:100%;display:flex;flex-direction:column;background:#0f172a;border:none;border-radius:0;overflow:hidden;box-shadow:none;}
+  .pdf-titlebar{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid #233648;background:#111827;}
+  .pdf-titlebar h3{margin:0;color:#fff;font-size:20px;font-weight:800;}
+  .pdf-titlebar p{margin:4px 0 0;color:#92adc9;font-size:12px;}
+  .pdf-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #233648;background:#16222e;}
+  .pdf-toolbar button,.pdf-toolbar input{height:38px;border-radius:10px;border:1px solid #324d67;background:#0f172a;color:#fff;padding:0 12px;}
+  .pdf-toolbar button{font-weight:700;}
+  .pdf-toolbar button:hover{background:#233648;}
+  .pdf-toolbar input{width:84px;}
+  .pdf-stage{flex:1;overflow:auto;background:#0b1220;}
+  .pdf-stage-inner{min-height:100%;display:flex;justify-content:center;align-items:flex-start;padding:24px;}
+  .pdf-page-wrap{background:#111827;border-radius:18px;padding:16px;box-shadow:0 8px 28px rgba(0,0,0,.28);}
+  .pdf-spread{display:flex;gap:16px;align-items:flex-start;justify-content:center;}
+  .pdf-page-canvas{background:#fff;border-radius:10px;box-shadow:0 8px 22px rgba(0,0,0,.25);}
+  .pdf-meta{padding:10px 18px;color:#92adc9;font-size:12px;border-top:1px solid #233648;background:#111827;}
+  .pdf-close-btn{position:absolute;top:12px;right:12px;z-index:10;width:42px;height:42px;border:none;border-radius:999px;background:rgba(15,23,42,.88);color:#fff;font-size:20px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.3);}
+  .pdf-close-btn:hover{background:#ef4444;}
+  @media (max-width: 960px){
+    #openPdfFullscreen{top:74px;right:12px;padding:10px 14px;font-size:13px;}
+    .pdf-overlay{padding:0;}
+    .pdf-overlay-inner{width:100vw;height:100vh;}
+    .pdf-spread{flex-direction:column;gap:12px;}
+    .pdf-page-wrap{padding:10px;}
+    .pdf-toolbar{gap:8px;}
+  }
+</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-white min-h-screen flex flex-col">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-border-dark bg-background-light dark:bg-background-dark px-6 py-3 sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<a href="index.html" class="flex items-center gap-4 text-white cursor-pointer hover:opacity-90 transition">
+<div class="flex items-center">
+<img src="./assets/kepco-logo-v2.svg" alt="KEPCO" class="h-8 w-auto object-contain" />
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] hidden lg:block">전력공급시설 통합 현황</h2></a>
+<nav class="flex items-center gap-6">
+<a class="text-[#92adc9] text-sm font-medium leading-normal hover:text-white transition-colors" href="#">개요</a>
+<a class="text-white text-sm font-medium leading-normal hover:text-primary transition-colors border-b-2 border-primary pb-1" href="#">상세 보고서</a>
+<a class="text-[#92adc9] text-sm font-medium leading-normal hover:text-white transition-colors" href="#">유지보수</a>
+</nav>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-9 border border-primary/50" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBBeO0KWmuzla4rtkZk_YSfq9MvgpFwoL0Ok2M-k93nSG3xrEoxih2Gb5QUFETUeGQfYiXDYcJZkEU1rHJbuQEgx2DOTTU4Dls_RCEt_UMJzPsQMYfI6JcKT4LP-l0wA6k7jPzEugLazN0K4UMhiB1Uv7gKYhASPWAe7ox_f8XnrugW4LNq4bOK65Pt7XsJknIN6ilhGIkzPK2RADbsBIcopN61GFNf4L_GjT0h7gCrgwJkn9X9UMx80spbdcPOV99qMHBfzWuYJV1v");'></div>
+</div>
+</header>
+<main class="flex-1 w-full px-6 py-6 flex flex-col gap-6">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">상세 현황</span>
+<h1 class="text-white text-3xl font-black leading-tight tracking-[-0.033em]">하남 구간 상세 현황</h1>
+</div>
+<p class="text-[#92adc9] text-sm font-normal">하남 지역 전력 공급을 위한 터널 및 수직구 건설 공정의 실시간 데이터입니다.</p>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
+<div id="profileHostHN" class="lg:col-span-7 flex flex-col gap-4 bg-panel-dark p-2 rounded-xl border border-border-dark min-h-[500px] lg:min-h-[700px]">
+<div class="flex justify-between items-center px-3 pt-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">map</span>
+<h3 class="text-white text-lg font-bold">하남 구간 공사 위치도</h3>
+</div>
+<div class="flex gap-1">
+<button class="text-[10px] bg-border-dark hover:bg-primary px-3 py-1 rounded-lg transition-colors" id="btnSatelliteHanam">위성</button>
+<button class="text-[10px] bg-primary px-3 py-1 rounded-lg transition-colors" id="btnMapHanam">지도</button>
+</div>
+</div>
+<div class="relative flex-grow w-full bg-[#0d161f] rounded-lg overflow-hidden border border-border-dark">
+<div class="absolute inset-0 w-full h-full" id="detailMapHanam"></div>
+<div class="absolute right-4 bottom-4 flex flex-col gap-2">
+<button class="map-overlay-blur size-9 flex items-center justify-center rounded-lg border border-border-dark text-white hover:bg-primary transition-colors" id="btnZoomInHanam">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="map-overlay-blur size-9 flex items-center justify-center rounded-lg border border-border-dark text-white hover:bg-primary transition-colors" id="btnZoomOutHanam">
+<span class="material-symbols-outlined text-lg">remove</span>
+</button>
+</div>
+</div>
+</div>
+<div class="lg:col-span-5 flex flex-col gap-6">
+<div class="bg-panel-dark rounded-xl border border-border-dark overflow-hidden flex flex-col flex-1">
+<div class="p-4 border-b border-border-dark flex justify-between items-center bg-[#1e2d3b]/50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">precision_manufacturing</span>
+<h3 class="text-white text-md font-bold">구간 별 진도 현황</h3>
+</div>
+</div>
+<div class="overflow-y-auto custom-scrollbar p-4 flex flex-col gap-4">
+<div class="space-y-3">
+<div class="bg-[#1a2632] p-3 rounded-lg border border-border-dark/50">
+<div class="flex justify-between items-start mb-2">
+<span class="text-sm font-bold text-white">하남 1-1구간</span>
+<div class="text-right">
+<p class="text-[10px] text-[#92adc9] uppercase">굴진평균</p>
+<p class="text-xs font-black text-emerald-400">4.5 m/d</p>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex justify-between items-center text-[11px]">
+<span class="text-[#92adc9]">굴진현황 (m)</span>
+<span class="font-bold">820m / 2,060.68m</span>
+</div>
+<div class="h-2 w-full bg-[#233648] rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 39.8%;"></div>
+</div>
+</div>
+</div>
+<div class="bg-[#1a2632] p-3 rounded-lg border border-border-dark/50">
+<div class="flex justify-between items-start mb-2">
+<span class="text-sm font-bold text-white">하남 1-2구간</span>
+<div class="text-right">
+<p class="text-[10px] text-[#92adc9] uppercase">굴진평균</p>
+<p class="text-xs font-black text-emerald-400">3.9 m/d</p>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex justify-between items-center text-[11px]">
+<span class="text-[#92adc9]">굴진현황 (m)</span>
+<span class="font-bold">550m / 2,695.42m</span>
+</div>
+<div class="h-2 w-full bg-[#233648] rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 20.4%;"></div>
+</div>
+</div>
+</div>
+<div class="bg-[#1a2632] p-3 rounded-lg border border-border-dark/50">
+<div class="flex justify-between items-start mb-2">
+<span class="text-sm font-bold text-white">하남 1-3구간</span>
+<div class="text-right">
+<p class="text-[10px] text-[#92adc9] uppercase">굴진평균</p>
+<p class="text-xs font-black text-emerald-400">4.1 m/d</p>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex justify-between items-center text-[11px]">
+<span class="text-[#92adc9]">굴진현황 (m)</span>
+<span class="font-bold">340m / 2,541.96m</span>
+</div>
+<div class="h-2 w-full bg-[#233648] rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 13.4%;"></div>
+</div>
+</div>
+</div>
+<div class="bg-[#1a2632] p-3 rounded-lg border border-border-dark/50">
+<div class="flex justify-between items-start mb-2">
+<span class="text-sm font-bold text-white">하남 1-4구간</span>
+<div class="text-right">
+<p class="text-[10px] text-[#92adc9] uppercase">굴진평균</p>
+<p class="text-xs font-black text-emerald-400">3.7 m/d</p>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex justify-between items-center text-[11px]">
+<span class="text-[#92adc9]">굴진현황 (m)</span>
+<span class="font-bold">120m / 1,453.86m</span>
+</div>
+<div class="h-2 w-full bg-[#233648] rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 8.3%;"></div>
+</div>
+</div>
+</div>
+<div class="bg-[#1a2632] p-3 rounded-lg border border-border-dark/50">
+<div class="flex justify-between items-start mb-2">
+<span class="text-sm font-bold text-white">하남 1-5구간</span>
+<div class="text-right">
+<p class="text-[10px] text-[#92adc9] uppercase">굴진평균</p>
+<p class="text-xs font-black text-emerald-400">4.0 m/d</p>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex justify-between items-center text-[11px]">
+<span class="text-[#92adc9]">굴진현황 (m)</span>
+<span class="font-bold">0m / 2,516.59m</span>
+</div>
+<div class="h-2 w-full bg-[#233648] rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 0%;"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-panel-dark rounded-xl border border-border-dark overflow-hidden flex flex-col flex-1">
+<div class="p-4 border-b border-border-dark flex justify-between items-center bg-[#1e2d3b]/50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">vertical_align_bottom</span>
+<h3 class="text-white text-md font-bold">구간 별 수직구 현황</h3>
+</div>
+</div>
+<div class="px-4 pt-4" id="shaftStatusControlsHN"></div>
+<div class="overflow-y-auto custom-scrollbar">
+<table class="w-full text-left border-collapse">
+<thead class="bg-[#1a2632] text-[#92adc9] text-[10px] uppercase tracking-widest sticky top-0 z-10" id="shaftStatusHeadHN">
+<tr>
+<th class="px-4 py-3 font-bold">수직구 명칭</th>
+<th class="px-4 py-3 font-bold">수직구 굴진현황(m)</th>
+<th class="px-4 py-3 font-bold">진척률</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#233648] text-xs" id="shaftStatusBodyHN">
+<tr class="hover:bg-[#233648]/50 transition-colors">
+<td class="px-4 py-4 font-semibold text-white">하남 #2 수직구 (1-1)</td>
+<td class="px-4 py-4 text-[#92adc9]">58.2m / 58.2m</td>
+<td class="px-4 py-4">
+<span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">완료</span>
+</td>
+</tr>
+<tr class="hover:bg-[#233648]/50 transition-colors">
+<td class="px-4 py-4 font-semibold text-white">하남 #3 수직구 (1-2)</td>
+<td class="px-4 py-4 text-[#92adc9]">78.7m / 78.7m</td>
+<td class="px-4 py-4">
+<span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">완료</span>
+</td>
+</tr>
+<tr class="hover:bg-[#233648]/50 transition-colors">
+<td class="px-4 py-4 font-semibold text-white">하남 #4 수직구 (1-3)</td>
+<td class="px-4 py-4 text-[#92adc9]">32.4m / 32.4m</td>
+<td class="px-4 py-4">
+<span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">완료</span>
+</td>
+</tr>
+<tr class="hover:bg-[#233648]/50 transition-colors">
+<td class="px-4 py-4 font-semibold text-white">하남 #5-1 수직구 (1-4)</td>
+<td class="px-4 py-4 text-[#92adc9]">40.1m / 40.1m</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-2">
+<div class="w-12 h-1.5 bg-[#233648] rounded-full overflow-hidden">
+<div class="h-full bg-emerald-500" style="width: 100%;"></div>
+</div>
+<span class="font-bold text-emerald-400">완료</span>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-[#233648]/50 transition-colors">
+<td class="px-4 py-4 font-semibold text-white">하남 #5 수직구 (1-5)</td>
+<td class="px-4 py-4 text-[#92adc9]">55.7m / 55.7m</td>
+<td class="px-4 py-4">
+<span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">완료</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="border-t border-border-dark px-6 py-4 mt-auto bg-background-dark">
+<div class="w-full flex flex-col md:flex-row justify-between items-center gap-4 text-[#92adc9] text-[10px]">
+<div class="flex items-center gap-4">
+<p>©  2026 한국전력공사 HVDC 건설본부(TF)</p>
+<div class="h-3 w-px bg-border-dark"></div>
+<p class="flex items-center gap-1"><span class="size-1.5 rounded-full bg-emerald-500"></span> 하남 구간 데이터 실시간 동기화 중</p>
+</div>
+<div class="flex gap-6 uppercase tracking-widest font-bold">
+<a class="hover:text-white transition-colors" href="#">보안 정책</a>
+<a class="hover:text-white transition-colors" href="#">IT 지원</a>
+</div>
+</div>
+</footer>
+
+
+<button id="openPdfFullscreen" aria-label="현장현황판">
+  <span class="material-symbols-outlined" style="font-size:18px;">menu_book</span>
+  현장현황판
+</button>
+
+<div id="pdfViewerOverlay" class="pdf-overlay" aria-hidden="true">
+  <div class="pdf-overlay-inner">
+    <button id="closePdfOverlay" class="pdf-close-btn" aria-label="전자책 닫기">✕</button>
+    <div class="pdf-shell">
+      <div class="pdf-titlebar">
+        <div>
+          <h3>하남 PDF 전자책</h3>
+          <p>전체 화면 팝업 · 2페이지 펼침 보기</p>
+        </div>
+      </div>
+      <div class="pdf-toolbar">
+        <button id="prevPage">이전</button>
+        <button id="nextPage">다음</button>
+        <span class="text-[#92adc9] text-sm">시작 페이지</span>
+        <input id="pageNumber" type="number" min="1" value="1" />
+        <span id="pageCount" class="text-white text-sm">/ 0</span>
+        <button id="zoomOut">축소</button>
+        <button id="zoomIn">확대</button>
+        <button id="fitWidth">높이맞춤</button>
+        <span id="zoomLabel" class="text-[#92adc9] text-sm">100%</span>
+      </div>
+      <div id="pdfStage" class="pdf-stage">
+        <div class="pdf-stage-inner">
+          <div class="pdf-page-wrap">
+            <div class="pdf-spread">
+              <canvas id="pdfCanvasLeft" class="pdf-page-canvas"></canvas>
+              <canvas id="pdfCanvasRight" class="pdf-page-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="pdfMeta" class="pdf-meta">PDF 로딩 중...</div>
+    </div>
+  </div>
+</div>
+
+<script crossorigin="" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="./detail_ringmap.js"></script>
+<script src="./detail_embedded_ringmap.js"></script>
+<script src="./detail_shaft_status.js"></script>
+<script src="./detail_profile_viewer.js"></script>
+<script>
+  window.TCSMSDetailEmbeddedRingMap.initEmbeddedRingMap({
+    containerId: 'detailMapHanam',
+    projectKey: 'HN',
+    btnSatelliteId: 'btnSatelliteHanam',
+    btnMapId: 'btnMapHanam',
+    zoomInButtonId: 'btnZoomInHanam',
+    zoomOutButtonId: 'btnZoomOutHanam'
+  });
+  window.TCSMSDetailShaftStatus.initWeeklyShaftStatus({
+    projectKey: 'HN',
+    controlsId: 'shaftStatusControlsHN',
+    theadId: 'shaftStatusHeadHN',
+    tbodyId: 'shaftStatusBodyHN'
+  });
+  window.TCSMSDetailProfileViewer.initProfileViewer({
+    hostId: 'profileHostHN',
+    projectKey: 'HN',
+    projectName: '하남',
+    themeColor: '#D94A3A',
+    themeSoftColor: 'rgba(217,74,58,0.18)',
+    subtitle: '하남 구간 종단면도 | Shield-TBM',
+    caption: '하남 구간 종단면도 | Shield-TBM',
+    segments: [
+      { label: '하남 1-1구간', shaftName: '#2', shaftDisplayName: '하남 #2 수직구 (1-1)', type: 'CRCHI', total: 2060.68, excavated: 820 },
+      { label: '하남 1-2구간', shaftName: '#3', shaftDisplayName: '하남 #3 수직구 (1-2)', type: 'CRCHI', total: 2695.42, excavated: 550 },
+      { label: '하남 1-3구간', shaftName: '#4', shaftDisplayName: '하남 #4 수직구 (1-3)', type: 'CREG', total: 2541.96, excavated: 340 },
+      { label: '하남 1-4구간', shaftName: '#5-1', shaftDisplayName: '하남 #5-1 수직구 (1-4)', type: 'CREG', total: 1453.86, excavated: 120 },
+      { label: '하남 1-5구간', shaftName: '#5', shaftDisplayName: '하남 #5 수직구 (1-5)', type: 'CREG', total: 2516.59, excavated: 0 }
+    ]
+  });
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.min.mjs" type="module"></script>
+<script type="module">
+  import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.min.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.mjs';
+
+  const PDF_URL = './hanam.pdf';
+  const leftCanvas = document.getElementById('pdfCanvasLeft');
+  const rightCanvas = document.getElementById('pdfCanvasRight');
+  const overlay = document.getElementById('pdfViewerOverlay');
+  const openBtn = document.getElementById('openPdfFullscreen');
+  const closeBtn = document.getElementById('closePdfOverlay');
+  const prevBtn = document.getElementById('prevPage');
+  const nextBtn = document.getElementById('nextPage');
+  const pageInput = document.getElementById('pageNumber');
+  const pageCount = document.getElementById('pageCount');
+  const zoomInBtn = document.getElementById('zoomIn');
+  const zoomOutBtn = document.getElementById('zoomOut');
+  const fitBtn = document.getElementById('fitWidth');
+  const zoomLabel = document.getElementById('zoomLabel');
+  const pdfMeta = document.getElementById('pdfMeta');
+
+  let pdfDoc = null;
+  let currentStartPage = 1;
+  let baseScale = 1;
+  let zoomFactor = 1;
+  let renderToken = 0;
+  let autoFlipTimer = null;
+
+  async function enterFullscreen(el) {
+    try {
+      if (document.fullscreenElement === el) return;
+      if (el.requestFullscreen) await el.requestFullscreen();
+    } catch (e) {}
+  }
+
+  async function exitFullscreen() {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+    } catch (e) {}
+  }
+
+  function clampStartPage(page) {
+    if (!pdfDoc) return 1;
+    const safe = Math.max(1, Math.min(Number(page) || 1, pdfDoc.numPages));
+    return safe % 2 === 0 ? safe - 1 : safe;
+  }
+
+  function updatePager() {
+    pageInput.value = currentStartPage;
+    pageCount.textContent = `/ ${pdfDoc ? pdfDoc.numPages : 0}`;
+    zoomLabel.textContent = `${Math.round(zoomFactor * 100)}%`;
+  }
+
+  async function renderPage(pageNo, canvas, scale, token) {
+    const ctx = canvas.getContext('2d');
+    if (!pdfDoc || pageNo < 1 || pageNo > pdfDoc.numPages) {
+      canvas.style.display = 'none';
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+    canvas.style.display = 'block';
+    const page = await pdfDoc.getPage(pageNo);
+    const viewport = page.getViewport({ scale });
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    if (token !== renderToken) return;
+    await page.render({ canvasContext: ctx, viewport }).promise;
+  }
+
+  async function fitToHeight() {
+    if (!pdfDoc) return;
+    const page = await pdfDoc.getPage(currentStartPage);
+    const viewport = page.getViewport({ scale: 1 });
+    const availableHeight = Math.max(window.innerHeight - 250, 240);
+    baseScale = availableHeight / viewport.height;
+    zoomFactor = 1;
+    await renderSpread();
+  }
+
+  async function renderSpread() {
+    if (!pdfDoc) return;
+    renderToken += 1;
+    const token = renderToken;
+    updatePager();
+    const scale = baseScale * zoomFactor;
+    await Promise.all([
+      renderPage(currentStartPage, leftCanvas, scale, token),
+      renderPage(currentStartPage + 1, rightCanvas, scale, token),
+    ]);
+    const rightVisible = currentStartPage + 1 <= pdfDoc.numPages;
+    pdfMeta.textContent = rightVisible
+      ? `${currentStartPage} - ${currentStartPage + 1} 페이지 표시 중 · 5초 자동 넘김`
+      : `${currentStartPage} 페이지 표시 중 · 5초 자동 넘김`;
+  }
+
+  function queueRender(startPage) {
+    currentStartPage = clampStartPage(startPage);
+    renderSpread();
+  }
+
+  function startAutoFlip() {
+    stopAutoFlip();
+    autoFlipTimer = window.setInterval(() => {
+      if (!overlay.classList.contains('is-open') || !pdfDoc) return;
+      const next = currentStartPage + 2 > pdfDoc.numPages ? 1 : currentStartPage + 2;
+      queueRender(next);
+    }, 5000);
+  }
+
+  function stopAutoFlip() {
+    if (autoFlipTimer) {
+      clearInterval(autoFlipTimer);
+      autoFlipTimer = null;
+    }
+  }
+
+  async function openOverlay() {
+    overlay.classList.add('is-open');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    if (!pdfDoc) return;
+    await fitToHeight();
+    startAutoFlip();
+  }
+
+  async function closeOverlay() {
+    overlay.classList.remove('is-open');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    stopAutoFlip();
+    await exitFullscreen();
+  }
+
+  prevBtn?.addEventListener('click', () => {
+    stopAutoFlip();
+    queueRender(currentStartPage - 2);
+  });
+  nextBtn?.addEventListener('click', () => {
+    stopAutoFlip();
+    queueRender(currentStartPage + 2);
+  });
+  zoomInBtn?.addEventListener('click', () => { zoomFactor = Math.min(2.5, zoomFactor + 0.1); renderSpread(); });
+  zoomOutBtn?.addEventListener('click', () => { zoomFactor = Math.max(0.5, zoomFactor - 0.1); renderSpread(); });
+  fitBtn?.addEventListener('click', fitToHeight);
+  pageInput?.addEventListener('change', () => queueRender(pageInput.value));
+  closeBtn?.addEventListener('click', closeOverlay);
+  openBtn?.addEventListener('click', async () => { await openOverlay(); await enterFullscreen(overlay); });
+
+  document.addEventListener('keydown', (e) => {
+    if (!overlay.classList.contains('is-open')) return;
+    if (e.key === 'Escape') closeOverlay();
+    if (e.key === 'ArrowRight') queueRender(currentStartPage + 2);
+    if (e.key === 'ArrowLeft') queueRender(currentStartPage - 2);
+  });
+
+  window.addEventListener('resize', () => {
+    if (!overlay.classList.contains('is-open') || !pdfDoc) return;
+    fitToHeight();
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && overlay.classList.contains('is-open')) {
+      document.body.style.overflow = '';
+    }
+  });
+
+  (async function initPdf() {
+    try {
+      pdfMeta.textContent = 'PDF 불러오는 중...';
+      pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
+      pageCount.textContent = `/ ${pdfDoc.numPages}`;
+      await openOverlay();
+    } catch (error) {
+      console.error(error);
+      pdfMeta.textContent = `PDF를 불러오지 못했습니다. 같은 폴더에 hanam.pdf 파일이 있는지 확인해주세요.`;
+      overlay.classList.add('is-open');
+      overlay.setAttribute('aria-hidden', 'false');
+    }
+  })();
+</script>
+
+</body></html>
