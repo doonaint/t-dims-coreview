@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>T-DIMS Redirect</title>
+  <meta http-equiv="refresh" content="0; url=./frontend_tcsms/index.html" />
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #0b1220;
+      color: #e5eefc;
+      font-family: Arial, "Noto Sans KR", sans-serif;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .wrap {
+      text-align: center;
+      padding: 24px;
+    }
+    a {
+      color: #93c5fd;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p>T-DIMS 화면으로 이동 중입니다.</p>
+    <p><a id="fallbackLink" href="./frontend_tcsms/index.html">?먮룞 ?대룞?????섎㈃ ?ш린瑜??대┃?섏꽭??</a></p>
+  </div>
+  <script>
+    (function () {
+      var target = './frontend_tcsms/index.html' + window.location.search + window.location.hash;
+      var link = document.getElementById('fallbackLink');
+      if (link) link.href = target;
+      window.location.replace(target);
+    }());
+  </script>
+</body>
+</html>

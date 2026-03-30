@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>양평 구간 상세 현황 - 전력공급시설</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#0a1118",
+                        "panel-dark": "#16222e",
+                        "border-dark": "#233648",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "Pretendard", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                font-family: "Public Sans", "Pretendard", sans-serif;
+            }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1a2632
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #324d67;
+            border-radius: 10px
+        }
+        .map-overlay-blur {
+            backdrop-filter: blur(8px);
+            background-color: rgba(16, 25, 34, 0.7)
+        }
+        .google-map-bg {
+            background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuAoZ_3iJg8f7IzBJYEUrLkyGmKeZCjgzzbXeUKrv8cTNpss8Sdgl6pYVIr447BcvnFnclHEt8Ngxakk5sSuTgm5OEUlpW9XI4OiKoNyw_1rZAkRYNn2TmuIGJSPqj-tW_z_FGQKMXXm-52IKzMvWFrM00aebqFJ46kKj4mNCgYsNUKMHD2vpdY-v63j39NQCIZ-gXX56crp5oQ5VDROP8RBoL-ttV7NgBaVp5STdRJYWBt_iObqqfrJu499EsVdk6QNVik1V7Y02Yhm);
+            background-size: cover;
+            background-position: center
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-white min-h-screen flex flex-col">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-border-dark bg-background-light dark:bg-background-dark px-6 py-3 sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4 text-white">
+<div class="size-8 text-primary">
+<svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M42.1739 20.1739L27.8261 5.82609C29.1366 7.13663 28.3989 10.1876 26.2002 13.7654C24.8538 15.9564 22.9595 18.3449 20.6522 20.6522C18.3449 22.9595 15.9564 24.8538 13.7654 26.2002C10.1876 28.3989 7.13663 29.1366 5.82609 27.8261L20.1739 42.1739C21.4845 43.4845 24.5355 42.7467 28.1133 40.548C30.3042 39.2016 32.6927 37.3073 35 35C37.3073 32.6927 39.2016 30.3042 40.548 28.1133C42.7467 24.5355 43.4845 21.4845 42.1739 20.1739Z" fill="currentColor"></path>
+</svg>
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] hidden lg:block">전력공급시설 통합 현황</h2>
+</div>
+<nav class="flex items-center gap-6">
+<a class="text-[#92adc9] text-sm font-medium leading-normal hover:text-white transition-colors" href="#">개요</a>
+<a class="text-white text-sm font-medium leading-normal hover:text-primary transition-colors border-b-2 border-primary pb-1" href="#">상세 보고서</a>
+<a class="text-[#92adc9] text-sm font-medium leading-normal hover:text-white transition-colors" href="#">유지보수</a>
+</nav>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<div class="flex gap-2">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#233648] text-white hover:bg-primary transition-colors text-sm font-medium">
+<span class="material-symbols-outlined text-sm">arrow_back</span>
+                    Back to Overview
+                </button>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-9 border border-primary/50" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBBeO0KWmuzla4rtkZk_YSfq9MvgpFwoL0Ok2M-k93nSG3xrEoxih2Gb5QUFETUeGQfYiXDYcJZkEU1rHJbuQEgx2DOTTU4Dls_RCEt_UMJzPsQMYfI6JcKT4LP-l0wA6k7jPzEugLazN0K4UMhiB1Uv7gKYhASPWAe7ox_f8XnrugW4LNq4bOK65Pt7XsJknIN6ilhGIkzPK2RADbsBIcopN61GFNf4L_GjT0h7gCrgwJkn9X9UMx80spbdcPOV99qMHBfzWuYJV1v");'></div>
+</div>
+</header>
+<main class="flex-1 w-full px-6 py-6 flex flex-col gap-6">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">양평 구간</span>
+<h1 class="text-white text-3xl font-black leading-tight tracking-[-0.033em]">양평 구간 상세 현황 </h1>
+</div>
+<p class="text-[#92adc9] text-sm font-normal">양평 지역 전력 계통 보강을 위한 터널 굴착 및 수직구 공사 상세 현황(총 4개 공구)입니다.</p>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
+<div class="lg:col-span-7 flex flex-col gap-4 bg-panel-dark p-2 rounded-xl border border-border-dark min-h-[500px] lg:min-h-[700px]">
+<div class="flex justify-between items-center px-3 pt-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">map</span>
+<h3 class="text-white text-lg font-bold">양평 구간 공사 위치도</h3>
+</div>
+<div class="flex gap-1">
+<button class="text-[10px] bg-border-dark hover:bg-primary px-3 py-1 rounded-lg transition-colors">위성</button>
+<button class="text-[10px] bg-primary px-3 py-1 rounded-lg transition-colors">지도</button>
+</div>
+</div>
+<div class="relative flex-grow w-full bg-[#0d161f] rounded-lg overflow-hidden border border-border-dark">
+<iframe
+            src="https://www.google.com/maps?q=37.491,127.487&z=12&output=embed"
+            class="absolute inset-0 w-full h-full border-0"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"></iframe>
+
+<div class="absolute top-[35%] left-[25%] group cursor-pointer">
+<div class="flex flex-col items-center">
+<div class="bg-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded mb-1 shadow-lg">양평 4-1</div>
+<div class="size-5 bg-primary rounded-full border-2 border-white animate-pulse shadow-[0_0_15px_rgba(19,127,236,1)]"></div>
+</div>
+</div>
+<div class="absolute top-[30%] left-[55%] group cursor-pointer">
+<div class="flex flex-col items-center">
+<div class="bg-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded mb-1 shadow-lg">양평 4-2</div>
+<div class="size-5 bg-primary rounded-full border-2 border-white shadow-[0_0_15px_rgba(19,127,236,0.6)]"></div>
+</div>
+</div>
+<div class="absolute top-[55%] left-[45%] group cursor-pointer">
+<div class="flex flex-col items-center">
+<div class="bg-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded mb-1 shadow-lg">양평 4-3</div>
+<div class="size-5 bg-primary rounded-full border-2 border-white shadow-[0_0_15px_rgba(19,127,236,0.6)]"></div>
+</div>
+</div>
+<div class="absolute top-[65%] left-[70%] group cursor-pointer">
+<div class="flex flex-col items-center">
+<div class="bg-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded mb-1 shadow-lg">양평 4-4</div>
+<div class="size-5 bg-primary rounded-full border-2 border-white shadow-[0_0_15px_rgba(19,127,236,0.6)]"></div>
+</div>
+</div>
+<div class="absolute right-4 bottom-4 flex flex-col gap-2">
+<button class="map-overlay-blur size-9 flex items-center justify-center rounded-lg border border-border-dark text-white hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="map-overlay-blur size-9 flex items-center justify-center rounded-lg border border-border-dark text-white hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-lg">remove</span>
+</button>
+</div>
+</div>
+</div>
+<div class="lg:col-span-5 flex flex-col gap-6">
+<div class="bg-panel-dark rounded-xl border border-border-dark overflow-hidden flex flex-col h-[700px]">
+<div class="p-4 border-b border-border-dark flex justify-between items-center bg-[#1e2d3b]/50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">precision_manufacturing</span>
+<h3 class="text-white text-md font-bold">공구 별 진도 현황</h3>
+</div>
+</div>
+<div class="overflow-y-auto custom-scrollbar p-4 flex flex-col gap-3">
+<div class="bg-[#1a2632] p-4 rounded-lg border border-border-dark/50">
+<div class="flex justify-between items-start mb-3">
+<span class="text-sm font-bold text-white">양평 4-1공구</span>
+<div class="text-right">
+<p class="text-[10px] text-[#92adc9] uppercase">굴진평균 (m/d)</p>
+<p class="text-xs font-black text-emerald-400">5.1 m/d</p>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center text-[11px]">
+<span class="text-[#92adc9]">굴진현황 (m)</span>
+<span class="font-bold">1,120m / 1,450m</span>
+</div>
+<div class="h-2.5 w-full bg-[#233648] rounded-full overflow-hidden">
+<div class="h-full bg-primary shadow-[0_0_8px_rgba(19,127,236,0.5)]" style="width: 77%;"></div>
+</div>
+</div>
+</div>
+<div class="bg-[#1a2632] p-4 rounded-lg border border-border-dark/50">
+<div class="flex justify-between items-start mb-3">
+<span class="text-sm font-bold text-white">양평 4-2공구</span>
+<div class="text-right">
+<p class="text-[10px] text-[#92adc9] uppercase">굴진평균 (m/d)</p>
+<p class="text-xs font-black text-emerald-400">4.8 m/d</p>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center text-[11px]">
+<span class="text-[#92adc9]">굴진현황 (m)</span>
+<span class="font-bold">425m / 1,280m</span>
+</div>
+<div class="h-2.5 w-full bg-[#233648] rounded-full overflow-hidden">
+<div class="h-full bg-primary shadow-[0_0_8px_rgba(19,127,236,0.5)]" style="width: 33%;"></div>
+</div>
+</div>
+</div>
+<div class="bg-[#1a2632] p-4 rounded-lg border border-border-dark/50">
+<div class="flex justify-between items-start mb-3">
+<span class="text-sm font-bold text-white">양평 4-3공구</span>
+<div class="text-right">
+<p class="text-[10px] text-[#92adc9] uppercase">굴진평균 (m/d)</p>
+<p class="text-xs font-black text-emerald-400">5.5 m/d</p>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center text-[11px]">
+<span class="text-[#92adc9]">굴진현황 (m)</span>
+<span class="font-bold">890m / 1,600m</span>
+</div>
+<div class="h-2.5 w-full bg-[#233648] rounded-full overflow-hidden">
+<div class="h-full bg-primary shadow-[0_0_8px_rgba(19,127,236,0.5)]" style="width: 55%;"></div>
+</div>
+</div>
+</div>
+<div class="bg-[#1a2632] p-4 rounded-lg border border-border-dark/50">
+<div class="flex justify-between items-start mb-3">
+<span class="text-sm font-bold text-white">양평 4-4공구</span>
+<div class="text-right">
+<p class="text-[10px] text-[#92adc9] uppercase">굴진평균 (m/d)</p>
+<p class="text-xs font-black text-amber-400">2.1 m/d</p>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center text-[11px]">
+<span class="text-[#92adc9]">굴진현황 (m)</span>
+<span class="font-bold">120m / 1,350m</span>
+</div>
+<div class="h-2.5 w-full bg-[#233648] rounded-full overflow-hidden">
+<div class="h-full bg-primary shadow-[0_0_8px_rgba(19,127,236,0.5)]" style="width: 9%;"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-panel-dark rounded-xl border border-border-dark overflow-hidden flex flex-col flex-1">
+<div class="p-4 border-b border-border-dark flex justify-between items-center bg-[#1e2d3b]/50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">vertical_align_bottom</span>
+<h3 class="text-white text-md font-bold">공구 별 수직구 현황</h3>
+</div>
+</div>
+<div class="overflow-y-auto custom-scrollbar">
+<table class="w-full text-left border-collapse">
+<thead class="bg-[#1a2632] text-[#92adc9] text-[10px] uppercase tracking-widest sticky top-0 z-10">
+<tr>
+<th class="px-4 py-3 font-bold">수직구 명칭</th>
+<th class="px-4 py-3 font-bold">수직구 굴진현황 (m)</th>
+<th class="px-4 py-3 font-bold">진척률</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#233648] text-xs">
+<tr class="hover:bg-[#233648]/50 transition-colors">
+<td class="px-4 py-4 font-semibold text-white">양평 #1 수직구 (4-1)</td>
+<td class="px-4 py-4 text-[#92adc9]">52m / 52m</td>
+<td class="px-4 py-4">
+<span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">완료</span>
+</td>
+</tr>
+<tr class="hover:bg-[#233648]/50 transition-colors">
+<td class="px-4 py-4 font-semibold text-white">양평 #2 수직구 (4-2)</td>
+<td class="px-4 py-4 text-[#92adc9]">41m / 48m</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-2">
+<div class="w-12 h-1.5 bg-[#233648] rounded-full overflow-hidden">
+<div class="h-full bg-blue-400" style="width: 85%;"></div>
+</div>
+<span class="font-bold text-blue-400">85%</span>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-[#233648]/50 transition-colors">
+<td class="px-4 py-4 font-semibold text-white">양평 #3 수직구 (4-3)</td>
+<td class="px-4 py-4 text-[#92adc9]">8m / 55m</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-2">
+<div class="w-12 h-1.5 bg-[#233648] rounded-full overflow-hidden">
+<div class="h-full bg-amber-500" style="width: 14%;"></div>
+</div>
+<span class="font-bold text-amber-500">14%</span>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-[#233648]/50 transition-colors">
+<td class="px-4 py-4 font-semibold text-white">양평 #4 수직구 (4-4)</td>
+<td class="px-4 py-4 text-[#92adc9]">2m / 45m</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-2">
+<div class="w-12 h-1.5 bg-[#233648] rounded-full overflow-hidden">
+<div class="h-full bg-red-500" style="width: 4%;"></div>
+</div>
+<span class="font-bold text-red-500">4%</span>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="border-t border-border-dark px-6 py-4 mt-auto bg-background-dark">
+<div class="w-full flex flex-col md:flex-row justify-between items-center gap-4 text-[#92adc9] text-[10px]">
+<div class="flex items-center gap-4">
+<p>© 2026 한국전력공사 HVDC 건설본부(TF)</p>
+<div class="h-3 w-px bg-border-dark"></div>
+<p class="flex items-center gap-1"><span class="size-1.5 rounded-full bg-emerald-500"></span> 양평 구간 데이터(4공구) 실시간 동기화 중</p>
+</div>
+<div class="flex gap-6 uppercase tracking-widest font-bold">
+<a class="hover:text-white transition-colors" href="#">보안 정책</a>
+<a class="hover:text-white transition-colors" href="#">IT 지원</a>
+</div>
+</div>
+</footer>
+
+</body></html>
