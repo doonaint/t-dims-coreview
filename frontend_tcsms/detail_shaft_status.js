@@ -88,22 +88,22 @@
     `;
   }
 
-  async function fetchSegments(projectKey) {
-    const response = await fetch(`/api/projects/${projectKey}/segments`);
-    if (!response.ok) throw new Error('segment fetch failed');
+  async function fetchSections(projectKey) {
+    const response = await fetch(`/api/projects/${projectKey}/sections`);
+    if (!response.ok) throw new Error('section fetch failed');
     const payload = await response.json();
-    return Array.isArray(payload && payload.segments) ? payload.segments : [];
+    return Array.isArray(payload && payload.sections) ? payload.sections : [];
   }
 
-  async function fetchSegmentWeek(segmentId) {
-    const response = await fetch(`/api/segments/${segmentId}/shaft-weekly-progress`);
-    if (!response.ok) throw new Error('segment shaft progress fetch failed');
+  async function fetchSectionWeek(sectionId) {
+    const response = await fetch(`/api/sections/${sectionId}/shaft-weekly-progress`);
+    if (!response.ok) throw new Error('section shaft progress fetch failed');
     const payload = await response.json();
     return Array.isArray(payload && payload.items) ? payload.items : [];
   }
 
-  async function saveSegmentWeek(segmentId, weekStart, item) {
-    const response = await fetch(`/api/segments/${segmentId}/shaft-weekly-progress/${weekStart}`, {
+  async function saveSectionWeek(sectionId, weekStart, item) {
+    const response = await fetch(`/api/sections/${sectionId}/shaft-weekly-progress/${weekStart}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -113,7 +113,7 @@
         note: item.note || ''
       })
     });
-    if (!response.ok) throw new Error('segment shaft progress save failed');
+    if (!response.ok) throw new Error('section shaft progress save failed');
   }
 
   function buildToolbarMarkup(projectKey, weekStart) {
@@ -126,7 +126,6 @@
         <div class="flex flex-wrap items-center gap-2">
           <input id="shaftWeekInput" type="date" value="${weekStart}" class="rounded-lg border border-border-dark bg-[#0f172a] px-3 py-2 text-white text-xs focus:border-sky-400 focus:outline-none" />
           <button id="shaftWeekThisBtn" type="button" class="rounded-lg border border-border-dark bg-[#0f172a] px-3 py-2 text-xs font-semibold text-white hover:bg-[#1f2937]">\uc774\ubc88 \uc8fc</button>
-          <button id="shaftWeekOpenBtn" type="button" class="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:opacity-90">\uc218\uc9c1\uad6c\uc77c\uc9c0</button>
           ${PROJECT_INFO[projectKey] ? '<button id="shaftInfoOpenBtn" type="button" class="rounded-lg border border-border-dark bg-[#0f172a] px-3 py-2 text-xs font-semibold text-white hover:bg-[#1f2937]">\uc218\uc9c1\uad6c \uc815\ubcf4</button>' : ''}
         </div>
       </div>
@@ -174,10 +173,10 @@
           ${items.map((item) => `
             <tr style="border-top:1px solid #233648;">
               <td style="padding:14px;color:#fff;font-weight:700;">${item.name}</td>
-              <td style="padding:14px;"><input data-field="weeklyMeters" data-segment-id="${item.segmentId}" type="number" min="0" step="0.1" value="${Number(item.weeklyMeters || 0)}" style="width:100%;height:38px;border-radius:10px;border:1px solid #233648;background:#0f172a;color:#fff;padding:0 10px;" /></td>
-              <td style="padding:14px;"><input data-field="completedMeters" data-segment-id="${item.segmentId}" type="number" min="0" step="0.1" value="${Number(item.completedMeters || 0)}" style="width:100%;height:38px;border-radius:10px;border:1px solid #233648;background:#0f172a;color:#fff;padding:0 10px;" /></td>
-              <td style="padding:14px;"><input data-field="totalMeters" data-segment-id="${item.segmentId}" type="number" min="0" step="0.1" value="${Number(item.totalMeters || 0)}" style="width:100%;height:38px;border-radius:10px;border:1px solid #233648;background:#0f172a;color:#fff;padding:0 10px;" /></td>
-              <td style="padding:14px;"><input data-field="note" data-segment-id="${item.segmentId}" type="text" value="${String(item.note || '').replace(/"/g, '&quot;')}" style="width:100%;height:38px;border-radius:10px;border:1px solid #233648;background:#0f172a;color:#fff;padding:0 10px;" placeholder="\ube44\uace0 \uc785\ub825" /></td>
+              <td style="padding:14px;"><input data-field="weeklyMeters" data-section-id="${item.sectionId}" type="number" min="0" step="0.1" value="${Number(item.weeklyMeters || 0)}" style="width:100%;height:38px;border-radius:10px;border:1px solid #233648;background:#0f172a;color:#fff;padding:0 10px;" /></td>
+              <td style="padding:14px;"><input data-field="completedMeters" data-section-id="${item.sectionId}" type="number" min="0" step="0.1" value="${Number(item.completedMeters || 0)}" style="width:100%;height:38px;border-radius:10px;border:1px solid #233648;background:#0f172a;color:#fff;padding:0 10px;" /></td>
+              <td style="padding:14px;"><input data-field="totalMeters" data-section-id="${item.sectionId}" type="number" min="0" step="0.1" value="${Number(item.totalMeters || 0)}" style="width:100%;height:38px;border-radius:10px;border:1px solid #233648;background:#0f172a;color:#fff;padding:0 10px;" /></td>
+              <td style="padding:14px;"><input data-field="note" data-section-id="${item.sectionId}" type="text" value="${String(item.note || '').replace(/"/g, '&quot;')}" style="width:100%;height:38px;border-radius:10px;border:1px solid #233648;background:#0f172a;color:#fff;padding:0 10px;" placeholder="\ube44\uace0 \uc785\ub825" /></td>
             </tr>
           `).join('')}
         </tbody>
@@ -284,26 +283,26 @@
   }
 
   async function buildItems(projectKey, weekStart) {
-    const segments = await fetchSegments(projectKey);
-    const items = await Promise.all(segments.map(async (segment) => {
-      const weeklyRows = await fetchSegmentWeek(segment.id);
+    const sections = await fetchSections(projectKey);
+    const items = await Promise.all(sections.map(async (section) => {
+      const weeklyRows = await fetchSectionWeek(section.id);
       const weekRow = weeklyRows.find((row) => row.week_start === weekStart) || null;
       const latestRow = weeklyRows[0] || null;
       return {
-        segmentId: segment.id,
-        segmentCode: segment.code,
-        name: segment.shaftDisplayName || segment.name,
+        sectionId: section.sectionId || section.id,
+        sectionCode: section.sectionCode || section.code,
+        name: section.shaftDisplayName || section.sectionName || section.name,
         weeklyMeters: weekRow ? Number(weekRow.progress_distance_m || 0) : 0,
         completedMeters: weekRow && weekRow.cumulative_distance_m != null
           ? Number(weekRow.cumulative_distance_m)
           : latestRow && latestRow.cumulative_distance_m != null
             ? Number(latestRow.cumulative_distance_m)
             : 0,
-        totalMeters: Number(segment.totalDistanceM || 0),
+        totalMeters: Number(section.totalDistanceM || 0),
         note: (weekRow && weekRow.note) || ''
       };
     }));
-    return items.sort((a, b) => String(a.segmentCode).localeCompare(String(b.segmentCode), 'ko'));
+    return items.sort((a, b) => String(a.sectionCode).localeCompare(String(b.sectionCode), 'ko'));
   }
 
   async function initWeeklyShaftStatus(config) {
@@ -320,6 +319,9 @@
     const weekThisBtn = controls.querySelector('#shaftWeekThisBtn');
     const openBtn = controls.querySelector('#shaftWeekOpenBtn');
     const infoBtn = controls.querySelector('#shaftInfoOpenBtn');
+    const externalWeekBtn = config.externalWeekButtonId ? document.getElementById(config.externalWeekButtonId) : null;
+    const externalInfoBtn = config.externalInfoButtonId ? document.getElementById(config.externalInfoButtonId) : null;
+    const externalTotalBtn = config.externalTotalWeekButtonId ? document.getElementById(config.externalTotalWeekButtonId) : null;
     const weekLabelNode = controls.querySelector('#shaftWeekLabel');
     const messageNode = controls.querySelector('#shaftWeekMessage');
 
@@ -394,10 +396,10 @@
 
     function collectModalItems() {
       const nextItems = items.map((item) => ({ ...item }));
-      modalBody.querySelectorAll('[data-field][data-segment-id]').forEach((input) => {
-        const segmentId = Number(input.getAttribute('data-segment-id'));
+      modalBody.querySelectorAll('[data-field][data-section-id]').forEach((input) => {
+        const sectionId = Number(input.getAttribute('data-section-id'));
         const field = input.getAttribute('data-field');
-        const target = nextItems.find((item) => item.segmentId === segmentId);
+        const target = nextItems.find((item) => item.sectionId === sectionId);
         if (!target) return;
         target[field] = normalizeFieldValue(field, input.value);
       });
@@ -407,7 +409,7 @@
     async function saveModal() {
       const nextItems = collectModalItems();
       modalMessage.textContent = '\uc800\uc7a5 \uc911\uc785\ub2c8\ub2e4.';
-      await Promise.all(nextItems.map((item) => saveSegmentWeek(item.segmentId, weekStart, item)));
+      await Promise.all(nextItems.map((item) => saveSectionWeek(item.sectionId, weekStart, item)));
       items = nextItems;
       modalMessage.textContent = '\uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4.';
       messageNode.textContent = `${weekLabel(weekStart)} \uae30\uc900 \uc785\ub825 \uacb0\uacfc\uac00 \ubc18\uc601\ub418\uc5c8\uc2b5\ub2c8\ub2e4.`;
@@ -415,8 +417,12 @@
       closeModal();
     }
 
-    openBtn.addEventListener('click', openModal);
-    if (infoBtn) infoBtn.addEventListener('click', openInfoModal);
+    [openBtn, externalWeekBtn, externalTotalBtn].filter(Boolean).forEach((button) => {
+      button.addEventListener('click', openModal);
+    });
+    [infoBtn, externalInfoBtn].filter(Boolean).forEach((button) => {
+      button.addEventListener('click', openInfoModal);
+    });
     weekThisBtn.addEventListener('click', () => loadWeek(toDateValue(mondayOf())));
     weekInput.addEventListener('change', () => loadWeek(weekInput.value));
     modalThisWeek.addEventListener('click', () => loadWeek(toDateValue(mondayOf())));

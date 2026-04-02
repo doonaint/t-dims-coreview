@@ -64,15 +64,25 @@
 </style>
 
 <style>
-  #openPdfFullscreen{
-    position:fixed; top:82px; right:24px; z-index:1900;
-    display:flex; align-items:center; gap:8px;
-    padding:12px 16px; border-radius:14px; border:1px solid rgba(255,255,255,.14);
-    background:rgba(15,23,42,.92); color:#fff; font-weight:800; font-size:14px;
-    box-shadow:0 10px 28px rgba(0,0,0,.28); cursor:pointer;
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  .detail-header-actions{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
   }
-  #openPdfFullscreen:hover{ background:rgba(30,41,59,.98); }
+  header nav{display:none;}
+  .detail-header-button{
+    display:inline-flex; align-items:center; gap:6px;
+    min-height:38px; padding:8px 14px; border-radius:12px;
+    border:1px solid rgba(255,255,255,.14); background:rgba(15,23,42,.88);
+    color:#dbe7f5; font-size:13px; font-weight:800; cursor:pointer;
+    box-shadow:0 8px 22px rgba(0,0,0,.2); transition:all .2s ease;
+  }
+  .detail-header-button:hover{ background:rgba(30,41,59,.98); color:#fff; }
+  .detail-header-button-primary{
+    background:var(--section-primary); border-color:transparent; color:#fff;
+  }
+  .detail-header-button-primary:hover{
+    background:var(--section-primary-light); color:#fff;
+  }
+  body > button#openPdfFullscreen{display:none !important;}
   .pdf-overlay{position:fixed;inset:0;z-index:2000;background:rgba(3,7,18,.96);display:none;align-items:center;justify-content:center;padding:0;}
   .pdf-overlay.is-open{display:flex;}
   .pdf-overlay-inner{position:relative;width:100vw;height:100vh;max-width:none;max-height:none;}
@@ -94,7 +104,8 @@
   .pdf-close-btn{position:absolute;top:12px;right:12px;z-index:10;width:42px;height:42px;border:none;border-radius:999px;background:rgba(15,23,42,.88);color:#fff;font-size:20px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.3);}
   .pdf-close-btn:hover{background:#ef4444;}
   @media (max-width: 960px){
-    #openPdfFullscreen{top:74px;right:12px;padding:10px 14px;font-size:13px;}
+    .detail-header-actions{gap:8px;}
+    .detail-header-button{min-height:36px;padding:8px 12px;font-size:12px;}
     .pdf-overlay{padding:0;}
     .pdf-overlay-inner{width:100vw;height:100vh;}
     .pdf-spread{flex-direction:column;gap:12px;}
@@ -116,6 +127,28 @@
 <a class="text-white text-sm font-medium leading-normal hover:text-primary transition-colors border-b-2 border-primary pb-1" href="#">상세 보고서</a>
 <a class="text-[#92adc9] text-sm font-medium leading-normal hover:text-white transition-colors" href="#">유지보수</a>
 </nav>
+<div class="detail-header-actions">
+<button id="openPdfFullscreen" type="button" class="detail-header-button detail-header-button-primary" aria-label="현장현황판">
+<span class="material-symbols-outlined text-[18px]">menu_book</span>
+<span>현장현황판</span>
+</button>
+<button id="headerShaftInfoBtn" type="button" class="detail-header-button" aria-label="장비사양">
+<span class="material-symbols-outlined text-[18px]">construction</span>
+<span>장비사양</span>
+</button>
+<button id="headerShaftWeekBtn" type="button" class="detail-header-button" aria-label="수직구주간일지">
+<span class="material-symbols-outlined text-[18px]">event_note</span>
+<span>수직구주간일지</span>
+</button>
+<button id="headerTotalWeekBtn" type="button" class="detail-header-button" aria-label="총굴진율주간일지">
+<span class="material-symbols-outlined text-[18px]">query_stats</span>
+<span>총굴진율주간일지</span>
+</button>
+<button id="headerFocusZoneBtn" type="button" class="detail-header-button" aria-label="중점관리구간">
+<span class="material-symbols-outlined text-[18px]">target</span>
+<span>중점관리구간</span>
+</button>
+</div>
 </div>
 <div class="flex flex-1 justify-end gap-6 items-center">
 
@@ -396,7 +429,10 @@
     projectKey: 'HN',
     controlsId: 'shaftStatusControlsHN',
     theadId: 'shaftStatusHeadHN',
-    tbodyId: 'shaftStatusBodyHN'
+    tbodyId: 'shaftStatusBodyHN',
+    externalInfoButtonId: 'headerShaftInfoBtn',
+    externalWeekButtonId: 'headerShaftWeekBtn',
+    externalTotalWeekButtonId: 'headerTotalWeekBtn'
   });
   window.TCSMSDetailProfileViewer.initProfileViewer({
     hostId: 'profileHostHN',
@@ -588,14 +624,19 @@
       pdfMeta.textContent = 'PDF 불러오는 중...';
       pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
       pageCount.textContent = `/ ${pdfDoc.numPages}`;
-      await openOverlay();
     } catch (error) {
       console.error(error);
       pdfMeta.textContent = `PDF를 불러오지 못했습니다. 같은 폴더에 hanam.pdf 파일이 있는지 확인해주세요.`;
-      overlay.classList.add('is-open');
-      overlay.setAttribute('aria-hidden', 'false');
     }
   })();
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('header nav')?.remove();
+    document.getElementById('headerFocusZoneBtn')?.addEventListener('click', () => {
+      document.getElementById('profileHostHN')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
 </script>
 
 </body></html>

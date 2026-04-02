@@ -5,6 +5,9 @@
     NH: '\ub0a8\ud55c\uac15',
     YP: '\uc591\ud3c9'
   };
+  const DEFAULT_SECTION_KEY = '__all__';
+  const DEFAULT_SECTION_LABEL = '\uc804\uccb4 \uad6c\uac04';
+  const mapSelectionState = new WeakMap();
 
   function normalizeRow(row, index) {
     const ring = row && row.ring != null ? row.ring : index + 1;
@@ -13,7 +16,15 @@
     const lng = Number(row && row.lng);
     const sortCandidate = row && row.sortOrder != null ? row.sortOrder : (row && row.sortRing != null ? row.sortRing : ring);
     const sortRing = Number.isFinite(Number(sortCandidate)) ? Number(sortCandidate) : index + 1;
-    return { ring, chain, lat, lng, sortRing };
+    const sectionNumber = row && (row.sectionNumber || row.segmentNumber) ? String(row.sectionNumber || row.segmentNumber) : '';
+    return {
+      ring,
+      chain,
+      lat,
+      lng,
+      sortRing,
+      sectionNumber
+    };
   }
 
   function normalizeRows(rows) {
@@ -24,11 +35,13 @@
   }
 
   function normalizeShaftRow(row, index) {
-    const lat = Number(row && row.latitude);
-    const lng = Number(row && row.longitude);
+    const lat = Number(row && row.latitude != null ? row.latitude : row && row.lat);
+    const lng = Number(row && row.longitude != null ? row.longitude : row && row.lng);
+    const sectionNumber = row && (row.sectionNumber || row.segmentNumber) ? String(row.sectionNumber || row.segmentNumber) : '';
     return {
       id: row && row.id != null ? row.id : index + 1,
-      segmentNumber: row && row.segmentNumber ? row.segmentNumber : '',
+      sectionNumber,
+      segmentNumber: sectionNumber,
       shaftName: row && row.shaftName ? row.shaftName : '',
       shaftDisplayName: row && row.shaftDisplayName ? row.shaftDisplayName : '',
       note: row && row.note ? row.note : '',
@@ -43,6 +56,18 @@
       .map(normalizeShaftRow)
       .filter((row) => Number.isFinite(row.lat) && Number.isFinite(row.lng))
       .sort((a, b) => a.displayOrder - b.displayOrder);
+  }
+
+  function normalizeSection(section, index) {
+    const sectionNumber = section && (section.sectionNumber || section.segmentNumber) ? String(section.sectionNumber || section.segmentNumber) : '';
+    return {
+      id: section && section.id != null ? section.id : index + 1,
+      key: sectionNumber || `${DEFAULT_SECTION_KEY}-${index + 1}`,
+      sectionNumber,
+      sectionName: section && (section.sectionName || section.name) ? String(section.sectionName || section.name) : (sectionNumber || DEFAULT_SECTION_LABEL),
+      sectionCode: section && (section.sectionCode || section.code) ? String(section.sectionCode || section.code) : '',
+      displayOrder: section && section.displayOrder != null ? Number(section.displayOrder) : index + 1
+    };
   }
 
   function buildEmptyState(projectName) {
@@ -61,51 +86,106 @@
     );
   }
 
+  function createSectionState(definition, rows, shaftRows, completedRing) {
+    return {
+      key: definition.key,
+      id: definition.id,
+      sectionNumber: definition.sectionNumber,
+      sectionName: definition.sectionName,
+      sectionCode: definition.sectionCode,
+      displayOrder: definition.displayOrder,
+      rows: normalizeRows(rows),
+      shaftLocations: normalizeShaftRows(shaftRows),
+      completedRing: completedRing || ''
+    };
+  }
+
+  function groupRowsBySection(rows, shaftRows) {
+    const rowGroups = new Map();
+    const shaftGroups = new Map();
+    const ensureGroup = (map, key) => {
+      if (!map.has(key)) map.set(key, []);
+      return map.get(key);
+    };
+
+    normalizeRows(rows).forEach((row) => {
+      ensureGroup(rowGroups, row.sectionNumber || DEFAULT_SECTION_KEY).push(row);
+    });
+    normalizeShaftRows(shaftRows).forEach((row) => {
+      ensureGroup(shaftGroups, row.sectionNumber || DEFAULT_SECTION_KEY).push(row);
+    });
+
+    const allKeys = Array.from(new Set([...rowGroups.keys(), ...shaftGroups.keys()]));
+    if (!allKeys.length) return [];
+
+    return allKeys.map((key, index) => createSectionState({
+      id: index + 1,
+      key,
+      sectionNumber: key === DEFAULT_SECTION_KEY ? '' : key,
+      sectionName: key === DEFAULT_SECTION_KEY ? DEFAULT_SECTION_LABEL : `${key} \uad6c\uac04`,
+      sectionCode: '',
+      displayOrder: index + 1
+    }, rowGroups.get(key) || [], shaftGroups.get(key) || [], ''));
+  }
+
+  function buildProjectState(rows, shaftRows, sections, completedRing) {
+    const normalizedRows = normalizeRows(rows);
+    const normalizedShaftRows = normalizeShaftRows(shaftRows);
+    const normalizedSections = (Array.isArray(sections) ? sections : [])
+      .filter((section) => (section.rows && section.rows.length) || (section.shaftLocations && section.shaftLocations.length))
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+
+    return {
+      rows: normalizedRows,
+      completedRing: completedRing || '',
+      shaftLocations: normalizedShaftRows,
+      sections: normalizedSections.length ? normalizedSections : groupRowsBySection(normalizedRows, normalizedShaftRows)
+    };
+  }
+
   async function fetchProjectState(projectKey) {
     try {
-      const response = await fetch(`/api/projects/${projectKey}/segments`);
-      if (!response.ok) throw new Error('segment state fetch failed');
+      const response = await fetch(`/api/projects/${projectKey}/sections`);
+      if (!response.ok) throw new Error('section state fetch failed');
       const payload = await response.json();
-      const segments = Array.isArray(payload && payload.segments) ? payload.segments : [];
+      const sections = (Array.isArray(payload && payload.sections) ? payload.sections : [])
+        .map(normalizeSection)
+        .sort((a, b) => a.displayOrder - b.displayOrder);
+
       const shaftResponse = await fetch(`/api/projects/${projectKey}/shaft-locations`);
       let shaftRows = [];
       if (shaftResponse.ok) {
         const shaftPayload = await shaftResponse.json();
         shaftRows = normalizeShaftRows(shaftPayload && shaftPayload.items);
       }
-      const coordinatePayloads = await Promise.all(
-        segments.map(async (segment) => {
-          const coordResponse = await fetch(`/api/segments/${segment.id}/ring-coordinates`);
-          if (!coordResponse.ok) return [];
+
+      const sectionStates = await Promise.all(
+        sections.map(async (section) => {
+          const coordResponse = await fetch(`/api/sections/${section.id}/ring-coordinates`);
+          if (!coordResponse.ok) {
+            return createSectionState(section, [], shaftRows.filter((row) => row.sectionNumber === section.sectionNumber), '');
+          }
           const coordPayload = await coordResponse.json();
-          return Array.isArray(coordPayload && coordPayload.items) ? coordPayload.items : [];
+          const rows = (Array.isArray(coordPayload && coordPayload.items) ? coordPayload.items : []).map((row, index) => ({
+            ring: row.ring_no,
+            chainage: row.chainage,
+            lat: row.latitude,
+            lng: row.longitude,
+            sortOrder: row.sort_order != null ? row.sort_order : index + 1,
+            sectionNumber: section.sectionNumber,
+            segmentNumber: section.sectionNumber
+          }));
+          const completedRing = coordPayload && coordPayload.section ? coordPayload.section.completedRing : '';
+          return createSectionState(section, rows, shaftRows.filter((row) => row.sectionNumber === section.sectionNumber), completedRing);
         })
       );
-      const rows = coordinatePayloads
-        .flat()
-        .map((row, index) => ({
-          ring: row.ring_no,
-          chainage: row.chainage,
-          lat: row.latitude,
-          lng: row.longitude,
-          sortOrder: row.sort_order != null ? row.sort_order : index + 1
-        }));
-      if (rows.length) {
-        return {
-          rows: normalizeRows(rows),
-          completedRing: '',
-          shaftLocations: shaftRows
-        };
-      }
-      if (shaftRows.length) {
-        return {
-          rows: [],
-          completedRing: '',
-          shaftLocations: shaftRows
-        };
+
+      const rows = sectionStates.flatMap((section) => section.rows);
+      if (rows.length || shaftRows.length) {
+        return buildProjectState(rows, shaftRows, sectionStates, '');
       }
     } catch (error) {
-      console.warn('detail ring map segment fetch failed', error);
+      console.warn('detail ring map section fetch failed', error);
     }
 
     try {
@@ -114,11 +194,7 @@
       const payload = await response.json();
       const project = payload && payload.projects ? payload.projects[projectKey] : null;
       if (project) {
-        return {
-          rows: normalizeRows(project.rows),
-          completedRing: project.completedRing || '',
-          shaftLocations: normalizeShaftRows(project.shaftLocations)
-        };
+        return buildProjectState(project.rows, project.shaftLocations, null, project.completedRing || '');
       }
     } catch (error) {
       console.warn('detail ring map server fetch failed', error);
@@ -129,17 +205,13 @@
       const projectName = PROJECT_NAMES[projectKey];
       const project = fallback && fallback.projects ? fallback.projects[projectName] : null;
       if (project) {
-        return {
-          rows: normalizeRows(project.rows),
-          completedRing: project.completedRing || '',
-          shaftLocations: normalizeShaftRows(project.shaftLocations)
-        };
+        return buildProjectState(project.rows, project.shaftLocations, null, project.completedRing || '');
       }
     } catch (error) {
       console.warn('detail ring map local fallback failed', error);
     }
 
-    return { rows: [], completedRing: '', shaftLocations: [] };
+    return buildProjectState([], [], [], '');
   }
 
   function setBasemap(which, map, satelliteLayer, roadLayer, btnSat, btnMap) {
@@ -196,17 +268,106 @@
     }
   }
 
-  function renderShaftLocations(map, shaftLocations) {
+  function ensureSectionSelector(container) {
+    if (!container) return null;
+    let selector = container.querySelector('[data-ringmap-section-selector]');
+    if (!selector) {
+      selector = document.createElement('div');
+      selector.setAttribute('data-ringmap-section-selector', 'true');
+      selector.style.position = 'absolute';
+      selector.style.left = '16px';
+      selector.style.top = '16px';
+      selector.style.zIndex = '700';
+      selector.style.display = 'flex';
+      selector.style.flexDirection = 'column';
+      selector.style.gap = '8px';
+      selector.style.maxWidth = 'min(420px, calc(100% - 32px))';
+      selector.style.padding = '10px';
+      selector.style.borderRadius = '14px';
+      selector.style.background = 'rgba(15,23,42,0.86)';
+      selector.style.border = '1px solid rgba(148,163,184,0.24)';
+      selector.style.backdropFilter = 'blur(10px)';
+      selector.style.boxShadow = '0 14px 32px rgba(2,6,23,0.32)';
+      container.appendChild(selector);
+    }
+    return selector;
+  }
+
+  function resolveSectionSelection(state, requestedKey) {
+    const sections = Array.isArray(state && state.sections) ? state.sections : [];
+    if (!sections.length) return null;
+    if (requestedKey) {
+      const matched = sections.find((section) => section.key === requestedKey || section.sectionNumber === requestedKey);
+      if (matched) return matched;
+    }
+    return sections.find((section) => section.rows.length || section.shaftLocations.length) || sections[0];
+  }
+
+  function updateSectionSelector(config, state, selectedSection) {
+    const container = config.container || config.map.getContainer();
+    const selector = ensureSectionSelector(container);
+    if (!selector) return;
+    const sections = Array.isArray(state && state.sections) ? state.sections : [];
+
+    if (sections.length <= 1) {
+      selector.style.display = 'none';
+      return;
+    }
+
+    selector.style.display = 'flex';
+    selector.innerHTML = '';
+
+    const title = document.createElement('div');
+    title.style.display = 'flex';
+    title.style.flexDirection = 'column';
+    title.style.gap = '2px';
+    title.innerHTML = `
+      <strong style="font-size:13px;color:#f8fafc;">\uc138\ubd80 \uad6c\uac04 \uc9c0\ub3c4</strong>
+      <span style="font-size:11px;color:#cbd5e1;">\uc120\ud0dd\ud55c \uad6c\uac04\uc758 \ub9c1\uc88c\ud45c\uc640 \uacf5\uc0ac \uc704\uce58\ub9cc \ud45c\uc2dc\ud569\ub2c8\ub2e4.</span>
+    `;
+    selector.appendChild(title);
+
+    const chips = document.createElement('div');
+    chips.style.display = 'flex';
+    chips.style.flexWrap = 'wrap';
+    chips.style.gap = '6px';
+
+    sections.forEach((section) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = section.sectionNumber || section.sectionName || DEFAULT_SECTION_LABEL;
+      button.style.height = '32px';
+      button.style.padding = '0 12px';
+      button.style.borderRadius = '999px';
+      button.style.border = section.key === selectedSection.key ? '1px solid rgba(96,165,250,0.9)' : '1px solid rgba(148,163,184,0.28)';
+      button.style.background = section.key === selectedSection.key ? 'rgba(37,99,235,0.92)' : 'rgba(30,41,59,0.72)';
+      button.style.color = '#f8fafc';
+      button.style.fontSize = '12px';
+      button.style.fontWeight = section.key === selectedSection.key ? '800' : '700';
+      button.style.cursor = 'pointer';
+      button.style.boxShadow = section.key === selectedSection.key ? '0 0 0 1px rgba(147,197,253,0.25), 0 8px 18px rgba(37,99,235,0.28)' : 'none';
+      button.addEventListener('click', () => {
+        mapSelectionState.set(config.map, { state, selectedSectionKey: section.key });
+        renderMapForSelection(config, state, section.key);
+      });
+      chips.appendChild(button);
+    });
+
+    selector.appendChild(chips);
+  }
+
+  function renderShaftLocations(map, shaftLocations, selectedSection) {
     shaftLocations.forEach((row) => {
+      const isSelected = !selectedSection || !selectedSection.sectionNumber || row.sectionNumber === selectedSection.sectionNumber;
       const marker = L.circleMarker([row.lat, row.lng], {
-        radius: 9,
-        color: '#f97316',
-        weight: 3,
-        fillColor: '#fff7ed',
-        fillOpacity: 0.95
+        radius: isSelected ? 11 : 8,
+        color: isSelected ? '#f97316' : '#fb923c',
+        weight: isSelected ? 4 : 2,
+        fillColor: isSelected ? '#fff7ed' : '#fed7aa',
+        fillOpacity: isSelected ? 0.98 : 0.75
       }).addTo(map);
-      marker.bindPopup(`<b>${row.shaftDisplayName || row.shaftName || row.segmentNumber || '수직구'}</b><br/>구간: ${row.segmentNumber || '-'}${row.note ? `<br/>비고: ${row.note}` : ''}`);
-      marker.bindTooltip(row.shaftName || row.segmentNumber || '수직구', {
+      marker.bindPopup(`<b>${row.shaftDisplayName || row.shaftName || row.segmentNumber || '\uc218\uc9c1\uad6c'}</b><br/>\uad6c\uac04: ${row.segmentNumber || '-'}${row.note ? `<br/>\ube44\uace0: ${row.note}` : ''}`);
+      marker.bindTooltip(row.shaftName || row.segmentNumber || '\uc218\uc9c1\uad6c', {
         direction: 'top',
         offset: [0, -10],
         opacity: 0.95
@@ -227,7 +388,7 @@
       color: '#1d4ed8',
       weight: 1,
       fillColor: '#3b82f6',
-      fillOpacity: 0.5,
+      fillOpacity: 0.58,
       renderer
     };
     const targetRing = Number(completedRing);
@@ -267,29 +428,38 @@
       }
     }
 
-    if (targetRow) {
-      const marker = L.circleMarker([targetRow.lat, targetRow.lng], {
-        radius: 7,
-        color: '#f59e0b',
-        weight: 3,
-        fillColor: '#ffffff',
-        fillOpacity: 0.9
-      }).addTo(map);
-
-      const km = (completedDistanceM / 1000).toFixed(3);
-      marker.bindTooltip(
-        `\uc644\ub8cc \ub9c1 <b>${targetRow.ring}</b><br/>\uccb4\uc778\ub9ac\uc9c0: <b>${targetRow.chain || '-'}</b><br/>\uc644\ub8cc\uac70\ub9ac(\ucd94\uc815): <b>${km} km</b>`,
-        {
-          permanent: true,
-          direction: 'top',
-          offset: [0, -8],
-          opacity: 0.95,
-          className: 'ring-tooltip'
-        }
-      ).openTooltip();
+    if (!targetRow && rows.length) {
+      targetRow = rows[rows.length - 1];
     }
 
-    renderShaftLocations(map, shaftLocations || []);
+    if (targetRow) {
+      const marker = L.circleMarker([targetRow.lat, targetRow.lng], {
+        radius: 8,
+        color: '#f59e0b',
+        weight: 4,
+        fillColor: '#ffffff',
+        fillOpacity: 0.96
+      }).addTo(map);
+
+      const km = completedDistanceM > 0 ? (completedDistanceM / 1000).toFixed(3) : '';
+      const tooltipParts = [
+        `<strong>\ud604\uc7ac \uacf5\uc0ac \uc704\uce58</strong>`,
+        `\ub9c1: <b>${targetRow.ring}</b>`,
+        `\uccb4\uc778\ub9ac\uc9c0: <b>${targetRow.chain || '-'}</b>`
+      ];
+      if (km) {
+        tooltipParts.push(`\uc644\ub8cc\uac70\ub9ac(\ucd94\uc815): <b>${km} km</b>`);
+      }
+      marker.bindTooltip(tooltipParts.join('<br/>'), {
+        permanent: true,
+        direction: 'top',
+        offset: [0, -8],
+        opacity: 0.95,
+        className: 'ring-tooltip'
+      }).openTooltip();
+    }
+
+    renderShaftLocations(map, shaftLocations || [], options.selectedSection || null);
 
     const points = rows.map((row) => [row.lat, row.lng]).concat((shaftLocations || []).map((row) => [row.lat, row.lng]));
     if (points.length) {
@@ -303,13 +473,37 @@
     if (zoomOutButton) zoomOutButton.addEventListener('click', () => map.zoomOut());
   }
 
+  function renderMapForSelection(config, state, requestedSectionKey) {
+    const selectedSection = resolveSectionSelection(state, requestedSectionKey);
+    const container = config.container || config.map.getContainer();
+    const activeRows = selectedSection ? selectedSection.rows : state.rows;
+    const activeShaftLocations = selectedSection ? selectedSection.shaftLocations : state.shaftLocations;
+    const hasData = activeRows.length || activeShaftLocations.length;
+
+    toggleEmptyOverlay(container, config.projectKey, !hasData);
+    updateSectionSelector(config, state, selectedSection || { key: DEFAULT_SECTION_KEY });
+
+    clearDataLayers(config.map, [config.satelliteLayer, config.mapLayer]);
+    if (hasData) {
+      renderProjectRows(config.map, activeRows, selectedSection ? selectedSection.completedRing : state.completedRing, activeShaftLocations, {
+        ...config,
+        selectedSection
+      });
+    }
+
+    mapSelectionState.set(config.map, {
+      state,
+      selectedSectionKey: selectedSection ? selectedSection.key : null
+    });
+
+    return selectedSection;
+  }
+
   async function syncExistingMap(config) {
     const state = await fetchProjectState(config.projectKey);
-    toggleEmptyOverlay(config.container || config.map.getContainer(), config.projectKey, !(state.rows.length || state.shaftLocations.length));
-    if (!state.rows.length && !state.shaftLocations.length) return state;
-    clearDataLayers(config.map, [config.satelliteLayer, config.mapLayer]);
-    renderProjectRows(config.map, state.rows, state.completedRing, state.shaftLocations, config);
-    return state;
+    const previous = mapSelectionState.get(config.map);
+    const selectedSection = renderMapForSelection(config, state, config.sectionNumber || (previous && previous.selectedSectionKey));
+    return { ...state, selectedSection };
   }
 
   async function initStandaloneMap(config) {
@@ -340,12 +534,15 @@
     setBasemap('sat', map, satelliteLayer, mapLayer, btnSat, btnMap);
 
     const state = await fetchProjectState(config.projectKey);
-    toggleEmptyOverlay(container, config.projectKey, !(state.rows.length || state.shaftLocations.length));
-    if (state.rows.length || state.shaftLocations.length) {
-      renderProjectRows(map, state.rows, state.completedRing, state.shaftLocations, config);
-    }
+    const selectedSection = renderMapForSelection({
+      ...config,
+      map,
+      satelliteLayer,
+      mapLayer,
+      container
+    }, state, config.sectionNumber);
 
-    return { map, satelliteLayer, mapLayer, state };
+    return { map, satelliteLayer, mapLayer, state, selectedSection };
   }
 
   global.TCSMSDetailRingMap = {

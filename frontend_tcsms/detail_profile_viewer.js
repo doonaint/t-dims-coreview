@@ -86,23 +86,23 @@
     });
   }
 
-  async function fetchSegments(projectKey) {
+  async function fetchSections(projectKey) {
     if (!projectKey) return [];
     try {
-      const response = await fetch(`/api/projects/${projectKey}/segments`);
-      if (!response.ok) throw new Error('segment fetch failed');
+      const response = await fetch(`/api/projects/${projectKey}/sections`);
+      if (!response.ok) throw new Error('section fetch failed');
       const payload = await response.json();
-      const segments = Array.isArray(payload && payload.segments) ? payload.segments : [];
-      return segments.map((segment) => ({
-        label: segment.name,
-        shaftName: segment.shaftName || '',
-        shaftDisplayName: segment.shaftDisplayName || '',
-        type: segment.excavationMethod || '',
-        total: Number(segment.totalDistanceM) || 0,
-        excavated: Number(segment.currentExcavatedDistanceM) || 0
+      const sections = Array.isArray(payload && payload.sections) ? payload.sections : [];
+      return sections.map((section) => ({
+        label: section.sectionName || section.name,
+        shaftName: section.shaftName || '',
+        shaftDisplayName: section.shaftDisplayName || '',
+        type: section.excavationMethod || '',
+        total: Number(section.totalDistanceM) || 0,
+        excavated: Number(section.currentExcavatedDistanceM) || 0
       }));
     } catch (error) {
-      console.warn('detail profile segment fetch failed', error);
+      console.warn('detail profile section fetch failed', error);
       return [];
     }
   }
@@ -269,9 +269,9 @@
     host.appendChild(panel);
 
     if (config.projectKey) {
-      const fetchedSegments = await fetchSegments(config.projectKey);
-      if (fetchedSegments.length) {
-        config.segments = fetchedSegments;
+      const fetchedSections = await fetchSections(config.projectKey);
+      if (fetchedSections.length) {
+        config.segments = fetchedSections;
       }
     }
 

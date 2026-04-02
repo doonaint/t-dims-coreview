@@ -166,6 +166,84 @@
     grid-template-columns: repeat(4, minmax(80px, 1fr)) !important;
     gap: 8px !important;
   }
+  .upload-preview-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(2, 6, 23, 0.72);
+    backdrop-filter: blur(6px);
+  }
+  .upload-preview-overlay.is-open { display: flex; }
+  .upload-preview-modal {
+    width: min(1080px, 100%);
+    max-height: calc(100vh - 48px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border-radius: 20px;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.12);
+    box-shadow: 0 30px 80px rgba(0,0,0,.28);
+  }
+  .upload-preview-head, .upload-preview-actions {
+    padding: 16px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgba(0,0,0,.08);
+  }
+  .upload-preview-actions {
+    border-top: 1px solid rgba(0,0,0,.08);
+    border-bottom: none;
+  }
+  .upload-preview-title { font-size: 18px; font-weight: 900; color: #0f172a; }
+  .upload-preview-sub { color: #334155; font-size: 12px; font-weight: 700; margin-top: 4px; }
+  .upload-preview-body { padding: 16px 18px; overflow: auto; display: flex; flex-direction: column; gap: 14px; }
+  .upload-preview-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .upload-preview-box { border: 1px solid rgba(0,0,0,.08); border-radius: 14px; background: #f8fafc; padding: 12px; }
+  .upload-preview-box .k { color: #334155; font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+  .upload-preview-box .v { font-size: 18px; font-weight: 900; color: #0f172a; }
+  .upload-preview-note { color: #334155; font-size: 12px; font-weight: 600; line-height: 1.6; border-radius: 14px; background: #eff6ff; border: 1px solid rgba(59,130,246,.18); padding: 12px 14px; }
+  .upload-preview-status { display:none; border-radius:14px; padding:12px 14px; font-size:12px; font-weight:700; line-height:1.6; }
+  .upload-preview-status.is-open { display:block; }
+  .upload-preview-status.info { background:#eff6ff; border:1px solid rgba(59,130,246,.18); color:#1d4ed8; }
+  .upload-preview-status.error { background:#fef2f2; border:1px solid rgba(239,68,68,.18); color:#b91c1c; }
+  .upload-preview-status.success { background:#ecfdf5; border:1px solid rgba(34,197,94,.18); color:#166534; }
+  .upload-preview-table-wrap { border: 1px solid rgba(0,0,0,.08); border-radius: 14px; overflow: auto; }
+  .upload-preview-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+  .upload-preview-table th, .upload-preview-table td { padding: 10px 12px; border-bottom: 1px solid rgba(0,0,0,.06); text-align: left; font-size: 12px; }
+  .upload-preview-table th { background: #f8fafc; color: #1e293b; font-weight: 800; position: sticky; top: 0; z-index: 1; }
+  .upload-preview-table td { color: #334155; font-weight: 600; }
+  #uploadPreviewConfirm {
+    background: #2563eb;
+    border-color: #1d4ed8;
+    color: #ffffff;
+    font-weight: 900;
+  }
+  #uploadPreviewConfirm:hover {
+    background: #1d4ed8;
+    border-color: #1e40af;
+    color: #ffffff;
+  }
+  #uploadPreviewConfirm:disabled {
+    background: #93c5fd;
+    border-color: #93c5fd;
+    color: #eff6ff;
+  }
+  .upload-preview-table tr:last-child td { border-bottom: none; }
+  .upload-preview-row-invalid { background: rgba(254, 226, 226, 0.7); }
+  .upload-preview-chip { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:5px 10px; font-size:11px; font-weight:700; }
+  .upload-preview-chip.valid { background:#dcfce7; color:#166534; }
+  .upload-preview-chip.invalid { background:#fee2e2; color:#991b1b; }
+  @media (max-width: 900px) {
+    .upload-preview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .upload-preview-head, .upload-preview-actions { flex-direction: column; align-items: stretch; }
+  }
   </style>
 
   <style id="ringmap-theme-dark">
@@ -259,6 +337,47 @@
   </main>
 </div>
 
+<div id="uploadPreviewOverlay" class="upload-preview-overlay" aria-hidden="true">
+  <div class="upload-preview-modal">
+    <div class="upload-preview-head">
+      <div>
+        <div id="uploadPreviewTitle" class="upload-preview-title">링좌표 업로드 미리보기</div>
+        <div id="uploadPreviewSub" class="upload-preview-sub">파일 파싱 결과를 확인한 뒤 서버 저장을 진행합니다.</div>
+      </div>
+      <button id="uploadPreviewClose" class="btn" type="button">닫기</button>
+    </div>
+    <div class="upload-preview-body">
+      <div id="uploadPreviewSummary" class="upload-preview-grid"></div>
+      <div id="uploadPreviewNote" class="upload-preview-note"></div>
+      <div id="uploadPreviewStatus" class="upload-preview-status"></div>
+      <div class="upload-preview-table-wrap">
+        <table class="upload-preview-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>상태</th>
+              <th>구간</th>
+              <th>링번호</th>
+              <th>체인리지</th>
+              <th>위도</th>
+              <th>경도</th>
+              <th>비고</th>
+            </tr>
+          </thead>
+          <tbody id="uploadPreviewRows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="upload-preview-actions">
+      <div id="uploadPreviewFooter" class="upload-preview-sub">유효한 좌표만 서버에 저장됩니다.</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button id="uploadPreviewCancel" class="btn" type="button">취소</button>
+        <button id="uploadPreviewConfirm" class="btn primary" type="button">서버 저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <script>
@@ -285,7 +404,14 @@
     { key: 'YP', name: '양평' }
   ];
   const PROJECT_BY_NAME = Object.fromEntries(PROJECTS.map(project => [project.name, project]));
+  const PROJECT_SEGMENTS = {
+    GY: ['0-1', '0-2'],
+    HN: ['1-1', '1-2', '1-3', '1-4', '1-5'],
+    NH: ['2-1', '2-2', '2-3', '2-4'],
+    YP: ['3-1', '3-2', '3-3', '3-4']
+  };
   const EMPTY_PROJECT_STATE = () => ({ rows: [], completedRing: '', fileName: '', shaftLocations: [] });
+  const pendingUploads = {};
 
   const COLORS = {
     done: 'rgba(34,197,94,0.72)',
@@ -325,6 +451,7 @@
   const activeHighlightLayer = L.layerGroup().addTo(map);
   const state = {
     focus: 'ALL',
+    focusSections: {},
     projects: Object.fromEntries(PROJECTS.map(p => [p.name, EMPTY_PROJECT_STATE()]))
   };
 
@@ -338,7 +465,11 @@
   });
 
   function saveState() {
-    localStorage.setItem('ringMapProjectsStateV1', JSON.stringify(state));
+    localStorage.setItem('ringMapProjectsStateV1', JSON.stringify({
+      focus: state.focus,
+      focusSections: {},
+      projects: state.projects
+    }));
   }
   function loadState() {
     try {
@@ -347,11 +478,48 @@
       const parsed = JSON.parse(raw);
       if (parsed && parsed.projects) {
         state.focus = parsed.focus || 'ALL';
+        state.focusSections = {};
         for (const name of Object.keys(state.projects)) {
           if (parsed.projects[name]) state.projects[name] = parsed.projects[name];
         }
       }
     } catch (e) { console.warn(e); }
+  }
+
+  function getRowSectionNumber(row) {
+    if (!row || typeof row !== 'object') return '';
+    return String(row.sectionNumber || row.segmentNumber || '').trim();
+  }
+
+  function getFocusedSection(projectName) {
+    return String((state.focusSections && state.focusSections[projectName]) || '').trim();
+  }
+
+  function getProjectRows(projectName) {
+    const rows = Array.isArray(state.projects[projectName].rows) ? state.projects[projectName].rows : [];
+    const focusedSection = getFocusedSection(projectName);
+    if (!focusedSection) return rows;
+    return rows.filter((row) => getRowSectionNumber(row) === focusedSection);
+  }
+
+  function getProjectShafts(projectName) {
+    const shafts = Array.isArray(state.projects[projectName].shaftLocations) ? state.projects[projectName].shaftLocations : [];
+    const focusedSection = getFocusedSection(projectName);
+    if (!focusedSection) return shafts;
+    return shafts.filter((row) => getRowSectionNumber(row) === focusedSection);
+  }
+
+  function setFocusSection(projectName, sectionNumber) {
+    if (!projectName || projectName === 'ALL') return;
+    if (!state.focusSections || typeof state.focusSections !== 'object') state.focusSections = {};
+    const nextValue = String(sectionNumber || '').trim();
+    if (nextValue) state.focusSections[projectName] = nextValue;
+    else delete state.focusSections[projectName];
+    saveState();
+    renderProject(projectName);
+    if (state.focus === projectName) {
+      fitProject(projectName);
+    }
   }
 
   function applyServerProjects(projects) {
@@ -393,15 +561,13 @@
       throw new Error('No valid coordinate rows were parsed from the uploaded file.');
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('rows_json', JSON.stringify(rows));
-    formData.append('file_name', state.projects[projectName].fileName || file.name || `${project.key}.xlsx`);
-    formData.append('completed_ring', state.projects[projectName].completedRing || '');
-
     const response = await fetch(`/api/ringmap/projects/${project.key}/upload`, {
       method: 'POST',
-      body: formData
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildRingUploadPayload(rows, {
+        fileName: state.projects[projectName].fileName || file.name || `${project.key}.xlsx`,
+        completedRing: state.projects[projectName].completedRing || ''
+      }))
     });
     if (!response.ok) {
       const detail = await response.text();
@@ -453,6 +619,32 @@
     return Number.isFinite(n) ? n : null;
   }
 
+  function buildRingUploadPayload(rows, meta = {}) {
+    const segments = [];
+    const segmentIndexByValue = new Map();
+    const compactRows = rows.map((row) => {
+      const sectionNumber = String(row.sectionNumber || row.segmentNumber || '').trim();
+      if (sectionNumber && !segmentIndexByValue.has(sectionNumber)) {
+        segmentIndexByValue.set(sectionNumber, segments.length);
+        segments.push(sectionNumber);
+      }
+      return [
+        segmentIndexByValue.has(sectionNumber) ? segmentIndexByValue.get(sectionNumber) : -1,
+        row.ring ?? '',
+        row.chainage || '',
+        Number(row.lat),
+        Number(row.lng),
+        Number(row.sortRing ?? 0)
+      ];
+    });
+    return {
+      segments,
+      compactRows,
+      fileName: meta.fileName || '',
+      completedRing: meta.completedRing || ''
+    };
+  }
+
   function parseRowsFromWorkbook(buffer) {
     const wb = XLSX.read(buffer, { type: 'array' });
     const rows = [];
@@ -476,6 +668,7 @@
         rows.push({
           ring: ringRaw === '' ? idx + 1 : ringRaw,
           chainage: chainRaw,
+          sectionNumber: segmentCol ? row[segmentCol] : '',
           segmentNumber: segmentCol ? row[segmentCol] : '',
           lat, lng,
           sortRing: extractRingNumber(ringRaw, idx + 1),
@@ -493,6 +686,93 @@
     if (!matched) return fallback;
     const n = Number(matched[matched.length - 1]);
     return Number.isFinite(n) ? n : fallback;
+  }
+
+  function validatePreviewRows(projectName, rows) {
+    const project = PROJECT_BY_NAME[projectName];
+    const allowedSegments = new Set(project ? (PROJECT_SEGMENTS[project.key] || []) : []);
+    return rows.map((row, index) => {
+      const issues = [];
+      const segmentNumber = String(row.segmentNumber || '').trim();
+      if (!segmentNumber) {
+        issues.push('구간값 없음');
+      } else if (allowedSegments.size && !allowedSegments.has(segmentNumber)) {
+        issues.push(`허용 구간 아님 (${segmentNumber})`);
+      }
+      if (!Number.isFinite(Number(row.lat)) || !Number.isFinite(Number(row.lng))) {
+        issues.push('위도/경도 오류');
+      }
+      return {
+        ...row,
+        previewIndex: index + 1,
+        segmentNumber,
+        issues,
+        isValid: issues.length === 0
+      };
+    });
+  }
+
+  function openUploadPreview(projectName, file, rows) {
+    const overlay = document.getElementById('uploadPreviewOverlay');
+    const title = document.getElementById('uploadPreviewTitle');
+    const sub = document.getElementById('uploadPreviewSub');
+    const summary = document.getElementById('uploadPreviewSummary');
+    const note = document.getElementById('uploadPreviewNote');
+    const tbody = document.getElementById('uploadPreviewRows');
+    const footer = document.getElementById('uploadPreviewFooter');
+    const validatedRows = validatePreviewRows(projectName, rows);
+    const validRows = validatedRows.filter((row) => row.isValid).map(({ issues, isValid, previewIndex, ...rest }) => rest);
+    const invalidRows = validatedRows.filter((row) => !row.isValid);
+    pendingUploads[projectName] = { file, rows: validRows, validatedRows };
+
+    title.textContent = `${projectName} 링좌표 업로드 미리보기`;
+    sub.textContent = `${file.name} 파일에서 읽은 행을 확인한 뒤 서버에 저장합니다.`;
+    summary.innerHTML = `
+      <div class="upload-preview-box"><div class="k">전체 행</div><div class="v">${validatedRows.length}</div></div>
+      <div class="upload-preview-box"><div class="k">유효 행</div><div class="v">${validRows.length}</div></div>
+      <div class="upload-preview-box"><div class="k">오류 행</div><div class="v">${invalidRows.length}</div></div>
+      <div class="upload-preview-box"><div class="k">허용 구간</div><div class="v" style="font-size:14px;">${(PROJECT_SEGMENTS[PROJECT_BY_NAME[projectName]?.key] || []).join(', ')}</div></div>
+    `;
+    note.textContent = invalidRows.length
+      ? `오류 행 ${invalidRows.length}건은 서버 저장에서 제외됩니다. 구간값이 비어 있거나 현재 프로젝트 구간과 다르면 오류로 표시됩니다.`
+      : '모든 행이 유효합니다. 아래 표를 확인한 뒤 서버 저장을 진행하세요.';
+    footer.textContent = validRows.length
+      ? `유효한 좌표 ${validRows.length}건을 서버에 저장합니다.`
+      : '유효한 좌표가 없어 서버 저장을 진행할 수 없습니다.';
+    tbody.innerHTML = validatedRows.slice(0, 200).map((row) => `
+      <tr class="${row.isValid ? '' : 'upload-preview-row-invalid'}">
+        <td>${row.previewIndex}</td>
+        <td><span class="upload-preview-chip ${row.isValid ? 'valid' : 'invalid'}">${row.isValid ? '유효' : '오류'}</span></td>
+        <td>${row.segmentNumber || '-'}</td>
+        <td>${row.ring ?? '-'}</td>
+        <td>${row.chainage || '-'}</td>
+        <td>${row.lat ?? '-'}</td>
+        <td>${row.lng ?? '-'}</td>
+        <td>${row.issues.length ? row.issues.join(', ') : '확인 완료'}</td>
+      </tr>
+    `).join('');
+    document.getElementById('uploadPreviewStatus').className = 'upload-preview-status';
+    document.getElementById('uploadPreviewStatus').textContent = '';
+    document.getElementById('uploadPreviewConfirm').disabled = !validRows.length;
+    document.getElementById('uploadPreviewConfirm').dataset.projectName = projectName;
+    overlay.classList.add('is-open');
+    overlay.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeUploadPreview() {
+    const overlay = document.getElementById('uploadPreviewOverlay');
+    const status = document.getElementById('uploadPreviewStatus');
+    overlay.classList.remove('is-open');
+    overlay.setAttribute('aria-hidden', 'true');
+    status.className = 'upload-preview-status';
+    status.textContent = '';
+    delete document.getElementById('uploadPreviewConfirm').dataset.projectName;
+  }
+
+  function setUploadPreviewStatus(kind, message) {
+    const status = document.getElementById('uploadPreviewStatus');
+    status.className = `upload-preview-status is-open ${kind}`;
+    status.textContent = message;
   }
 
   function ringStatus(index, rows, completedRing) {
@@ -526,56 +806,53 @@
     return { total, done, active, progress };
   }
 
-  function projectPanelTemplate(projectName) {
+  function projectPanelTemplate(projectKey, projectName) {
     return `
       <div class="panel" data-project-panel="${projectName}">
         <div class="project-head">
           <div class="project-name">${projectName}</div>
-          <div class="badge" id="badge-${projectName}">미업로드</div>
+          <div class="badge" id="badge-${projectKey}">미업로드</div>
         </div>
         <div class="row">
-          <label class="file-label" for="file-${projectName}">엑셀 업로드</label>
-          <input type="file" id="file-${projectName}" accept=".xlsx,.xls" />
+          <label class="file-label" for="file-${projectKey}">엑셀 업로드</label>
+          <input type="file" id="file-${projectKey}" accept=".xlsx,.xls" />
           <button class="btn" data-focus-btn="${projectName}">지도 보기</button>
         </div>
         <div class="row">
-          <input type="number" id="completed-${projectName}" placeholder="완료 링 번호 예: 179" />
+          <input type="number" id="completed-${projectKey}" placeholder="완료 링 번호 예: 179" />
           <button class="btn primary" data-update="${projectName}">업데이트</button>
           <button class="btn" data-clear="${projectName}">삭제</button>
         </div>
-        <div class="help" id="fileName-${projectName}">업로드된 파일 없음</div>
+        <div class="help" id="fileName-${projectKey}">업로드된 파일 없음</div>
         <div class="stats">
-          <div class="stat"><div class="k">전체 링</div><div class="v" id="total-${projectName}">0</div></div>
-          <div class="stat"><div class="k">완료 링</div><div class="v" id="done-${projectName}">0</div></div>
-          <div class="stat"><div class="k">진척율</div><div class="v" id="progress-${projectName}">0.0%</div></div>
-          <div class="stat"><div class="k">진행중 링</div><div class="v" id="active-${projectName}">-</div></div>
+          <div class="stat"><div class="k">전체 링</div><div class="v" id="total-${projectKey}">0</div></div>
+          <div class="stat"><div class="k">완료 링</div><div class="v" id="done-${projectKey}">0</div></div>
+          <div class="stat"><div class="k">진척율</div><div class="v" id="progress-${projectKey}">0.0%</div></div>
+          <div class="stat"><div class="k">진행중 링</div><div class="v" id="active-${projectKey}">-</div></div>
         </div>
       </div>`;
   }
 
   function renderPanels() {
-    document.getElementById('projectPanels').innerHTML = PROJECTS.map(p => projectPanelTemplate(p.name)).join('');
+    document.getElementById('projectPanels').innerHTML = PROJECTS.map(p => projectPanelTemplate(p.key, p.name)).join('');
 
-    PROJECTS.forEach(({name}) => {
-      const fileInput = document.getElementById(`file-${name}`);
-      const completedInput = document.getElementById(`completed-${name}`);
+    PROJECTS.forEach(({key, name}) => {
+      const fileInput = document.getElementById(`file-${key}`);
+      const completedInput = document.getElementById(`completed-${key}`);
       completedInput.value = state.projects[name].completedRing || '';
 
       fileInput.addEventListener('change', async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        const buffer = await file.arrayBuffer();
-        const rows = parseRowsFromWorkbook(buffer);
-        state.projects[name].rows = rows;
-        state.projects[name].fileName = file.name;
-        saveState();
-        renderProject(name);
-        fitProject(name);
         try {
-          await persistProjectUpload(name, file);
-        } catch (error) {
-          console.warn(error);
-          alert('파일은 브라우저에 반영됐지만 서버 폴더 저장에는 실패했습니다.');
+          const buffer = await file.arrayBuffer();
+          const rows = parseRowsFromWorkbook(buffer);
+          openUploadPreview(name, file, rows);
+        } catch (err) {
+          console.error('[ringmap] file parse error', err);
+          alert(`파일을 읽는 중 오류가 발생했습니다.\n${err.message || err}`);
+        } finally {
+          fileInput.value = '';
         }
       });
 
@@ -588,7 +865,8 @@
 
     document.querySelectorAll('[data-update]').forEach(btn => btn.addEventListener('click', async () => {
       const name = btn.dataset.update;
-      state.projects[name].completedRing = document.getElementById(`completed-${name}`).value;
+      const key = PROJECT_BY_NAME[name]?.key;
+      state.projects[name].completedRing = document.getElementById(`completed-${key}`).value;
       saveState();
       renderProject(name);
       try {
@@ -602,7 +880,7 @@
     document.querySelectorAll('[data-clear]').forEach(btn => btn.addEventListener('click', async () => {
       const name = btn.dataset.clear;
       state.projects[name] = EMPTY_PROJECT_STATE();
-      document.getElementById(`completed-${name}`).value = '';
+      document.getElementById(`completed-${PROJECT_BY_NAME[name]?.key}`).value = '';
       saveState();
       renderProject(name);
       updateSummary();
@@ -646,8 +924,9 @@
   function getActiveRows() {
     const activeRows = [];
     PROJECTS.forEach(({name}) => {
+      if (state.focus !== 'ALL' && state.focus !== name) return;
       const info = state.projects[name];
-      const rows = info.rows || [];
+      const rows = getProjectRows(name);
       rows.forEach((row, idx) => {
         if (ringStatus(idx, rows, info.completedRing) === 'active') {
           activeRows.push({ projectName: name, row });
@@ -786,8 +1065,9 @@
     clearActiveHighlights();
     const activeRows = [];
     PROJECTS.forEach(({name}) => {
+      if (state.focus !== 'ALL' && state.focus !== name) return;
       const info = state.projects[name];
-      const rows = info.rows || [];
+      const rows = getProjectRows(name);
       rows.forEach((row, idx) => {
         if (ringStatus(idx, rows, info.completedRing) === 'active') {
           activeRows.push({ projectName: name, row });
@@ -853,8 +1133,8 @@
   function renderProject(projectName) {
     clearProjectLayers(projectName);
     const info = state.projects[projectName];
-    const rows = info.rows || [];
-    const shaftLocations = Array.isArray(info.shaftLocations) ? info.shaftLocations : [];
+    const rows = getProjectRows(projectName);
+    const shaftLocations = getProjectShafts(projectName);
     const g = groupByProject[projectName];
 
     rows.forEach((row, idx) => {
@@ -917,8 +1197,8 @@
   }
 
   function fitProject(projectName) {
-    const rows = state.projects[projectName].rows || [];
-    const shafts = (state.projects[projectName].shaftLocations || []).filter(r => Number.isFinite(Number(r.lat)) && Number.isFinite(Number(r.lng)));
+    const rows = getProjectRows(projectName);
+    const shafts = getProjectShafts(projectName).filter(r => Number.isFinite(Number(r.lat)) && Number.isFinite(Number(r.lng)));
     const points = rows.map(r => [r.lat, r.lng]).concat(shafts.map(r => [r.lat, r.lng]));
     if (!points.length) return;
     const bounds = L.latLngBounds(points);
@@ -958,12 +1238,13 @@
   function updatePanelStats(projectName) {
     const info = state.projects[projectName];
     const stats = projectStats(projectName);
-    document.getElementById(`badge-${projectName}`).textContent = info.rows.length ? '업로드됨' : '미업로드';
-    document.getElementById(`fileName-${projectName}`).textContent = info.fileName ? `${info.fileName}` : '업로드된 파일 없음';
-    document.getElementById(`total-${projectName}`).textContent = stats.total;
-    document.getElementById(`done-${projectName}`).textContent = stats.done;
-    document.getElementById(`progress-${projectName}`).textContent = `${stats.progress}%`;
-    document.getElementById(`active-${projectName}`).textContent = stats.active ? stats.active.ring : '-';
+    const key = PROJECT_BY_NAME[projectName]?.key;
+    document.getElementById(`badge-${key}`).textContent = info.rows.length ? '업로드됨' : '미업로드';
+    document.getElementById(`fileName-${key}`).textContent = info.fileName ? `${info.fileName}` : '업로드된 파일 없음';
+    document.getElementById(`total-${key}`).textContent = stats.total;
+    document.getElementById(`done-${key}`).textContent = stats.done;
+    document.getElementById(`progress-${key}`).textContent = `${stats.progress}%`;
+    document.getElementById(`active-${key}`).textContent = stats.active ? stats.active.ring : '-';
   }
 
   function updateSummary() {
@@ -1026,6 +1307,12 @@
         setFocus(projectName);
       }
     }
+    if (data.type === 'tcsms-focus-section') {
+      const projectName = String(data.projectName || '');
+      if (PROJECTS.some(project => project.name === projectName)) {
+        setFocusSection(projectName, data.value || '');
+      }
+    }
     if (data.type === 'tcsms-zoom-active' || data.type === 'tcsms-fit-active') {
       setTimeout(() => fitActiveRings(), 80);
     }
@@ -1039,12 +1326,55 @@
       syncStateFromServer().then(() => {
         renderPanels();
         PROJECTS.forEach(({name}) => renderProject(name));
-        setFocus('ALL');
+        const targetProjectName = String(data.projectName || 'ALL');
+        const targetSectionNumber = String(data.sectionNumber || '');
+        if (targetProjectName !== 'ALL' && PROJECTS.some(project => project.name === targetProjectName)) {
+          setFocus(targetProjectName);
+          if (targetSectionNumber) {
+            setFocusSection(targetProjectName, targetSectionNumber);
+          }
+        } else {
+          setFocus('ALL');
+        }
       });
     }
     if (data.type === 'tcsms-sidebar') setSidebarCollapsed(data.value === 'close');
   });
   document.getElementById('btnFitAll').addEventListener('click', fitAll);
+  document.getElementById('uploadPreviewClose').addEventListener('click', closeUploadPreview);
+  document.getElementById('uploadPreviewCancel').addEventListener('click', closeUploadPreview);
+  document.getElementById('uploadPreviewOverlay').addEventListener('click', (event) => {
+    if (event.target.id === 'uploadPreviewOverlay') closeUploadPreview();
+  });
+  document.getElementById('uploadPreviewConfirm').addEventListener('click', async (event) => {
+    const projectName = event.currentTarget.dataset.projectName;
+    const pending = pendingUploads[projectName];
+    if (!projectName || !pending) return;
+    const confirmButton = event.currentTarget;
+    confirmButton.disabled = true;
+    confirmButton.textContent = '저장 중...';
+    setUploadPreviewStatus('info', '서버에 업로드 데이터를 저장하고 있습니다. 잠시만 기다려 주세요.');
+    state.projects[projectName].rows = pending.rows;
+    state.projects[projectName].fileName = pending.file.name;
+    saveState();
+    renderProject(projectName);
+    fitProject(projectName);
+    try {
+      await persistProjectUpload(projectName, pending.file);
+      setUploadPreviewStatus('success', `서버 저장이 완료되었습니다. ${pending.rows.length}건이 반영되었습니다.`);
+      confirmButton.textContent = '저장 완료';
+      closeUploadPreview();
+      delete pendingUploads[projectName];
+    } catch (error) {
+      console.warn(error);
+      setUploadPreviewStatus('error', `서버 저장에 실패했습니다. ${error.message}`);
+      confirmButton.disabled = false;
+      confirmButton.textContent = '서버 저장';
+      return;
+    }
+    confirmButton.disabled = false;
+    confirmButton.textContent = '서버 저장';
+  });
   document.getElementById('btnClearAll').addEventListener('click', async () => {
     if (!confirm('교산, 하남, 남한강, 양평 업로드 데이터를 모두 초기화할까요?')) return;
     for (const name of Object.keys(state.projects)) state.projects[name] = EMPTY_PROJECT_STATE();

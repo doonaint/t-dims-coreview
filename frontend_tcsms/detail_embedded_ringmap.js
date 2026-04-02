@@ -36,6 +36,17 @@
     return button;
   }
 
+  function createSectionChip(label, active) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'map-overlay-blur rounded-full border border-border-dark px-3 py-2 text-xs font-bold text-white transition-colors';
+    button.textContent = label;
+    if (active) {
+      button.classList.add('bg-primary');
+    }
+    return button;
+  }
+
   function initEmbeddedRingMap(config) {
     const container = document.getElementById(config.containerId);
     if (!container) return null;
@@ -69,20 +80,36 @@
     controls.style.left = '14px';
     controls.style.zIndex = '10';
     controls.style.display = 'flex';
+    controls.style.flexDirection = 'column';
     controls.style.gap = '8px';
+
+    const primaryControls = document.createElement('div');
+    primaryControls.style.display = 'flex';
+    primaryControls.style.gap = '8px';
 
     const fitButton = createOverlayButton(`${config.containerId}FitBtn`, '\ud574\ub2f9 \uad6c\uac04 \ub9de\ucda4');
     const tourButton = createOverlayButton(`${config.containerId}TourBtn`, '\ud22c\uc5b4');
-    controls.appendChild(fitButton);
-    controls.appendChild(tourButton);
+    primaryControls.appendChild(fitButton);
+    primaryControls.appendChild(tourButton);
+
+    const sectionControls = document.createElement('div');
+    sectionControls.style.display = 'none';
+    sectionControls.style.flexWrap = 'wrap';
+    sectionControls.style.gap = '6px';
+
+    controls.appendChild(primaryControls);
+    controls.appendChild(sectionControls);
 
     container.replaceChildren(frame, controls);
 
     let currentBasemap = 'sat';
     let tourActive = false;
+    let activeSection = '';
+    let sectionItems = [];
 
     function focusProject() {
       postToFrame(frame, { type: 'tcsms-focus-project', value: projectName });
+      postToFrame(frame, { type: 'tcsms-focus-section', projectName, value: activeSection });
     }
 
     function closeSidebar() {
@@ -90,7 +117,11 @@
     }
 
     function syncFrame() {
-      postToFrame(frame, { type: 'tcsms-load-all' });
+      postToFrame(frame, {
+        type: 'tcsms-load-all',
+        projectName,
+        sectionNumber: activeSection
+      });
       postToFrame(frame, { type: 'tcsms-basemap', value: currentBasemap });
       postToFrame(frame, {
         type: 'tcsms-theme',
@@ -100,6 +131,40 @@
       global.setTimeout(focusProject, 120);
       global.setTimeout(closeSidebar, 220);
       global.setTimeout(focusProject, 420);
+    }
+
+    function renderSectionControls() {
+      sectionControls.replaceChildren();
+      if (!sectionItems.length) {
+        sectionControls.style.display = 'none';
+        return;
+      }
+      sectionControls.style.display = 'flex';
+      sectionItems.forEach((section) => {
+        const chip = createSectionChip(section.sectionNumber || section.sectionName, section.sectionNumber === activeSection);
+        chip.addEventListener('click', () => {
+          activeSection = section.sectionNumber || '';
+          renderSectionControls();
+          closeSidebar();
+          focusProject();
+        });
+        sectionControls.appendChild(chip);
+      });
+    }
+
+    async function loadSections() {
+      try {
+        const detailRingMap = global.TCSMSDetailRingMap;
+        if (!detailRingMap || typeof detailRingMap.fetchProjectState !== 'function') return;
+        const state = await detailRingMap.fetchProjectState(config.projectKey);
+        sectionItems = Array.isArray(state && state.sections) ? state.sections.filter((section) => (section.rows && section.rows.length) || (section.shaftLocations && section.shaftLocations.length)) : [];
+        if (!activeSection && sectionItems.length) {
+          activeSection = sectionItems[0].sectionNumber || '';
+        }
+        renderSectionControls();
+      } catch (error) {
+        console.warn('detail embedded ringmap section load failed', error);
+      }
     }
 
     function applyBasemap(which) {
@@ -142,6 +207,7 @@
       global.setTimeout(syncFrame, 350);
     });
 
+    loadSections();
     applyBasemap('sat');
     return { frame, syncFrame };
   }
